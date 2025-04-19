@@ -1,7 +1,12 @@
 from supabase import create_client, Client
+from dotenv import load_dotenv
+import os
 
-url = "https://vtdeaszcqhqiurfyjfze.supabase.co"
-key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0ZGVhc3pjcWhxaXVyZnlqZnplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUwNjA3NjEsImV4cCI6MjA2MDYzNjc2MX0.bgDXHKC2FS7OUgE4lGtz-OyVMcYwqnp_XTnAtDzv5xE"
+load_dotenv()
+
+url = os.getenv("SUPABASE_URL")
+key = os.getenv("SUPABASE_KEY")
+
 supabase: Client = create_client(url, key)
 
 async def add_user_if_not_exists(discord_id: str, name: str):
