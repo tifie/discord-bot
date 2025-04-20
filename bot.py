@@ -3,8 +3,10 @@
 from dotenv import load_dotenv
 import os
 
-load_dotenv()
+load_dotenv(dotenv_path="C:/Users/owner/Desktop/DiscordBot/token.env")
+
 TOKEN = os.getenv("DISCORD_TOKEN")
+print(f"DISCORD_TOKEN: {TOKEN}")
 
 import discord
 from discord.ext import commands
@@ -23,6 +25,9 @@ intents.guilds = True
 intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
+
+
+
 
 # 対象チャンネルのIDリスト（複数OK）
 TARGET_CHANNEL_IDS = [
@@ -85,3 +90,5 @@ async def on_reaction_add(reaction, user):
     # ポイント加算後もメッセージ送らず完了！
 
 
+if __name__ == "__main__":
+    bot.run(TOKEN)

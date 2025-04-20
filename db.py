@@ -2,10 +2,15 @@ from supabase import create_client, Client
 from dotenv import load_dotenv
 import os
 
-load_dotenv()
+load_dotenv(dotenv_path="C:/Users/owner/Desktop/DiscordBot/token.env")
+
 
 url = os.getenv("SUPABASE_URL")
 key = os.getenv("SUPABASE_KEY")
+
+print(f"SUPABASE_URL: {url}")
+print(f"SUPABASE_KEY: {key}")
+
 
 supabase: Client = create_client(url, key)
 
