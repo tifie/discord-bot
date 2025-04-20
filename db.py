@@ -2,7 +2,8 @@ from supabase import create_client, Client
 from dotenv import load_dotenv
 import os
 
-load_dotenv(dotenv_path="C:/Users/owner/Desktop/DiscordBot/token.env")
+# 環境変数を読み込み（Northflankでは勝手に環境変数セットされてる）
+load_dotenv()
 
 url = os.getenv("SUPABASE_URL")
 key = os.getenv("SUPABASE_KEY")
@@ -57,21 +58,18 @@ async def transfer_points(from_discord_id: str, to_discord_id: str, points: int)
     if from_user_id is None or to_user_id is None:
         return False
 
-    # 送信者の合計ポイントを確認
     res = supabase.table("points_log").select("points").eq("user_id", from_user_id).execute()
     total = sum(entry["points"] for entry in res.data)
 
     if total < points:
-        return False  # ポイント不足
+        return False
 
-    # 減算（マイナスポイントを入れる）
     supabase.table("points_log").insert({
         "user_id": from_user_id,
         "points": -points,
         "reason": "ポイント送信"
     }).execute()
 
-    # 加算
     supabase.table("points_log").insert({
         "user_id": to_user_id,
         "points": points,
