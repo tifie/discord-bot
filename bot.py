@@ -76,6 +76,7 @@ async def on_reaction_add(reaction, user):
 
     reaction_tracker[msg_id].add(user_id)
 
+    # 非同期でデータベース操作を実行
     await add_user_if_not_exists(str(author_id), author.display_name)
     await add_points(str(author_id), 10)
 
