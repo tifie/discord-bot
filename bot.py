@@ -1,22 +1,11 @@
-# -*- coding: utf-8 -*-
-
-from dotenv import load_dotenv
-import os
-
-# .envファイルを読み込む（パス指定なしでOK！）
-load_dotenv()
-
-TOKEN = os.getenv("DISCORD_TOKEN")
-print(f"DISCORD_TOKEN: {TOKEN}")
-
 import discord
 from discord.ext import commands
-from db import add_user_if_not_exists, add_points  # DB連携想定
+from discord import app_commands
+from db import add_user_if_not_exists, add_points, get_total_points, transfer_points
 
-try:
-    print("処理を実行中...")
-except Exception as e:
-    print(f"エラー発生: {e}")
+class MyBot(commands.Bot):
+    async def setup_hook(self):
+        await self.tree.sync()
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -25,60 +14,30 @@ intents.messages = True
 intents.guilds = True
 intents.members = True
 
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = MyBot(command_prefix="!", intents=intents)
 
-# 対象チャンネルのIDリスト
-TARGET_CHANNEL_IDS = [
-    1362883049104343211,  # チャンネル自慢
-    1361249839567867995,  # チャンネル写真
-    1360987317229322410,  # クリップ
-    1363170014349496571,  # 飯テロ
-    1363171100359659620,  # ネタ
-]
+# /mypointsコマンド
+@bot.tree.command(name="mypoints", description="自分のポイントを確認します")
+async def mypoints(interaction: discord.Interaction):
+    await add_user_if_not_exists(str(interaction.user.id), interaction.user.display_name)
+    points = await get_total_points(str(interaction.user.id))
+    await interaction.response.send_message(f"あなたの現在のポイントは **{points}ポイント** です！", ephemeral=True)
 
-reaction_tracker = {}
-
-@bot.event
-async def on_ready():
-    print(f"{bot.user} はオンラインです！")
-    print(f"ログイン完了: {bot.user}")
-    for guild in bot.guilds:
-        print(f"サーバー名: {guild.name}")
-        for member in guild.members:
-            if not member.bot:
-                await add_user_if_not_exists(str(member.id), member.display_name)
-
-@bot.event
-async def on_member_join(member):
-    if not member.bot:
-        await add_user_if_not_exists(str(member.id), member.display_name)
-
-@bot.event
-async def on_reaction_add(reaction, user):
-    message = reaction.message
-    author = message.author
-
-    if message.channel.id not in TARGET_CHANNEL_IDS:
+# /givepointsコマンド
+@bot.tree.command(name="givepoints", description="誰かにポイントを渡します")
+@app_commands.describe(user="ポイントを渡したい相手", amount="渡すポイント数")
+async def givepoints(interaction: discord.Interaction, user: discord.Member, amount: int):
+    if amount <= 0:
+        await interaction.response.send_message("1以上のポイントを指定してください。", ephemeral=True)
         return
 
-    if user.id == author.id:
-        return
+    sender_id = str(interaction.user.id)
+    receiver_id = str(user.id)
 
-    msg_id = message.id
-    user_id = user.id
-    author_id = author.id
+    # ポイントの移動
+    success, message = await transfer_points(sender_id, receiver_id, amount)
 
-    if msg_id not in reaction_tracker:
-        reaction_tracker[msg_id] = set()
-
-    if user_id in reaction_tracker[msg_id]:
-        return
-
-    reaction_tracker[msg_id].add(user_id)
-
-    # 非同期でデータベース操作を実行
-    await add_user_if_not_exists(str(author_id), author.display_name)
-    await add_points(str(author_id), 10)
+    await interaction.response.send_message(message, ephemeral=True)
 
 if __name__ == "__main__":
     bot.run(TOKEN)
