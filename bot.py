@@ -2,14 +2,6 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 from db import add_user_if_not_exists, add_points, get_total_points, transfer_points
-from dotenv import load_dotenv
-import os
-
-# .envファイルを読み込む
-load_dotenv()
-
-# DISCORD_TOKEN を .env から取得
-DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 
 class MyBot(commands.Bot):
     async def setup_hook(self):
@@ -27,31 +19,34 @@ bot = MyBot(command_prefix="!", intents=intents)
 # /mypointsコマンド
 @bot.tree.command(name="mypoints", description="自分のポイントを確認します")
 async def mypoints(interaction: discord.Interaction):
-    await add_user_if_not_exists(str(interaction.user.id), interaction.user.display_name)
-    points = await get_total_points(str(interaction.user.id))
-    await interaction.response.send_message(f"あなたの現在のポイントは **{points}ポイント** です！", ephemeral=True)
+    try:
+        await add_user_if_not_exists(str(interaction.user.id), interaction.user.display_name)
+        points = await get_total_points(str(interaction.user.id))
+        await interaction.response.send_message(f"あなたの現在のポイントは **{points}ポイント** です！", ephemeral=True)
+    except Exception as e:
+        await interaction.response.send_message(f"エラーが発生しました: {str(e)}", ephemeral=True)
 
 # /givepointsコマンド
 @bot.tree.command(name="givepoints", description="誰かにポイントを渡します")
 @app_commands.describe(user="ポイントを渡したい相手", amount="渡すポイント数")
 async def givepoints(interaction: discord.Interaction, user: discord.Member, amount: int):
-    if amount <= 0:
-        await interaction.response.send_message("1以上のポイントを指定してください。", ephemeral=True)
-        return
+    try:
+        if amount <= 0:
+            await interaction.response.send_message("1以上のポイントを指定してください。", ephemeral=True)
+            return
 
-    sender_id = str(interaction.user.id)
-    receiver_id = str(user.id)
+        sender_id = str(interaction.user.id)
+        receiver_id = str(user.id)
 
-    # ポイントの移動
-    success, message = await transfer_points(sender_id, receiver_id, amount)
+        # ポイントの移動
+        success, message = await transfer_points(sender_id, receiver_id, amount)
 
-    if success:
-        await interaction.response.send_message(f"{user.mention} に {amount} ポイントを渡しました！", ephemeral=True)
-    else:
         await interaction.response.send_message(message, ephemeral=True)
+    except Exception as e:
+        await interaction.response.send_message(f"エラーが発生しました: {str(e)}", ephemeral=True)
 
 if __name__ == "__main__":
-    if DISCORD_TOKEN:
+    try:
         bot.run(DISCORD_TOKEN)
-    else:
-        print("DISCORD_TOKENが設定されていません。")
+    except Exception as e:
+        print(f"ボットの実行中にエラーが発生しました: {str(e)}")
