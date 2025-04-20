@@ -14,6 +14,10 @@ intents.messages = True
 intents.guilds = True
 intents.members = True
 
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+if not DISCORD_TOKEN:
+    raise ValueError("DISCORD_TOKEN が環境変数から取得できませんでした")
+
 bot = MyBot(command_prefix="!", intents=intents)
 
 # /mypointsコマンド
