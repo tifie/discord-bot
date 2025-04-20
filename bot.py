@@ -37,7 +37,10 @@ async def givepoints(interaction: discord.Interaction, user: discord.Member, amo
     # ポイントの移動
     success, message = await transfer_points(sender_id, receiver_id, amount)
 
-    await interaction.response.send_message(message, ephemeral=True)
+    if success:
+        await interaction.response.send_message(f"{user.mention} に {amount} ポイントを渡しました！", ephemeral=True)
+    else:
+        await interaction.response.send_message(message, ephemeral=True)
 
 if __name__ == "__main__":
-    bot.run(TOKEN)
+    bot.run(DISCORD_TOKEN)
