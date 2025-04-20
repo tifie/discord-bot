@@ -2,6 +2,14 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 from db import add_user_if_not_exists, add_points, get_total_points, transfer_points
+from dotenv import load_dotenv
+import os
+
+# .envファイルを読み込む
+load_dotenv()
+
+# DISCORD_TOKEN を .env から取得
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 
 class MyBot(commands.Bot):
     async def setup_hook(self):
@@ -43,4 +51,7 @@ async def givepoints(interaction: discord.Interaction, user: discord.Member, amo
         await interaction.response.send_message(message, ephemeral=True)
 
 if __name__ == "__main__":
-    bot.run(DISCORD_TOKEN)
+    if DISCORD_TOKEN:
+        bot.run(DISCORD_TOKEN)
+    else:
+        print("DISCORD_TOKENが設定されていません。")
