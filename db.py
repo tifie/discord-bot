@@ -1,47 +1,81 @@
-async def get_total_points(discord_id: str) -> int:
-    user_id = await get_user_id(discord_id)
+from supabase import create_client, Client
+from dotenv import load_dotenv
+import os
+
+load_dotenv(dotenv_path="C:/Users/owner/Desktop/DiscordBot/token.env")
+
+url = os.getenv("SUPABASE_URL")
+key = os.getenv("SUPABASE_KEY")
+
+supabase: Client = create_client(url, key)
+
+async def add_user_if_not_exists(discord_id: str, name: str):
+    res = supabase.table("users").select("id").eq("discord_id", discord_id).execute()
+    if len(res.data) == 0:
+        insert_res = supabase.table("users").insert({
+            "discord_id": discord_id,
+            "name": name
+        }).execute()
+        user_id = insert_res.data[0]["id"]
+
+        supabase.table("points_log").insert({
+            "user_id": user_id,
+            "points": 0,
+            "reason": "初期ポイント"
+        }).execute()
+
+async def add_points(discord_id: str, points: int, reason: str = "リアクションポイント"):
+    user_id = get_user_id(discord_id)
+    if user_id is None:
+        return
+
+    supabase.table("points_log").insert({
+        "user_id": user_id,
+        "points": points,
+        "reason": reason
+    }).execute()
+
+def get_user_id(discord_id: str):
+    res = supabase.table("users").select("id").eq("discord_id", discord_id).execute()
+    if len(res.data) == 0:
+        return None
+    return res.data[0]["id"]
+
+async def get_total_points(discord_id: str):
+    user_id = get_user_id(discord_id)
     if user_id is None:
         return 0
 
-    user_data = await asyncio.to_thread(
-        lambda: supabase.table("users").select("total_points").eq("id", user_id).single().execute()
-    )
-    return user_data.data.get("total_points", 0)
+    res = supabase.table("points_log").select("points").eq("user_id", user_id).execute()
+    total = sum(entry["points"] for entry in res.data)
+    return total
 
-async def transfer_points(sender_discord_id: str, receiver_discord_id: str, amount: int):
-    sender_id = await get_user_id(sender_discord_id)
-    receiver_id = await get_user_id(receiver_discord_id)
+async def transfer_points(from_discord_id: str, to_discord_id: str, points: int):
+    from_user_id = get_user_id(from_discord_id)
+    to_user_id = get_user_id(to_discord_id)
 
-    if sender_id is None or receiver_id is None:
-        return False, "送信者または受信者が見つかりませんでした。"
+    if from_user_id is None or to_user_id is None:
+        return False
 
-    # 送信者のポイント確認
-    sender_data = await asyncio.to_thread(
-        lambda: supabase.table("users").select("total_points").eq("id", sender_id).single().execute()
-    )
-    sender_points = sender_data.data.get("total_points", 0)
+    # 送信者の合計ポイントを確認
+    res = supabase.table("points_log").select("points").eq("user_id", from_user_id).execute()
+    total = sum(entry["points"] for entry in res.data)
 
-    if sender_points < amount:
-        return False, "ポイントが足りません。"
+    if total < points:
+        return False  # ポイント不足
 
-    # ポイント移動ログ
-    await asyncio.to_thread(
-        lambda: supabase.table("points_log").insert([
-            {"user_id": sender_id, "points": -amount, "reason": "他ユーザーへのポイント譲渡"},
-            {"user_id": receiver_id, "points": amount, "reason": "他ユーザーからのポイント受け取り"}
-        ]).execute()
-    )
+    # 減算（マイナスポイントを入れる）
+    supabase.table("points_log").insert({
+        "user_id": from_user_id,
+        "points": -points,
+        "reason": "ポイント送信"
+    }).execute()
 
-    # 合計ポイントを更新
-    await asyncio.to_thread(
-        lambda: supabase.table("users").update({"total_points": sender_points - amount}).eq("id", sender_id).execute()
-    )
-    receiver_data = await asyncio.to_thread(
-        lambda: supabase.table("users").select("total_points").eq("id", receiver_id).single().execute()
-    )
-    receiver_points = receiver_data.data.get("total_points", 0)
-    await asyncio.to_thread(
-        lambda: supabase.table("users").update({"total_points": receiver_points + amount}).eq("id", receiver_id).execute()
-    )
+    # 加算
+    supabase.table("points_log").insert({
+        "user_id": to_user_id,
+        "points": points,
+        "reason": "ポイント受け取り"
+    }).execute()
 
-    return True, f"{amount}ポイントを {receiver_discord_id} に渡しました！"
+    return True
