@@ -38,7 +38,7 @@ TARGET_CHANNEL_IDS = [
     1363192707207397546
 ]
 
-@bot.tree.command(name="mypoints", description="自分のポイントを確認します")
+@bot.tree.command(name="mypoints", description="自分のNPを確認します")
 async def mypoints(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)  # 応答を即座に遅延させる（インタラクションを処理中に残す）
 
@@ -47,15 +47,15 @@ async def mypoints(interaction: discord.Interaction):
     points = await get_total_points(str(interaction.user.id))
 
     # ポイント情報を送信
-    await interaction.followup.send(f"現在のポイント： **{points}ポイント** ", ephemeral=True)
+    await interaction.followup.send(f"現在のNP： **{points}NP** ", ephemeral=True)
 
-@bot.tree.command(name="givepoints", description="誰かにポイントを渡します")
-@app_commands.describe(user="ポイントを渡す相手", amount="渡すポイント数")
+@bot.tree.command(name="givepoints", description="誰かにNPを渡します")
+@app_commands.describe(user="NPを渡す相手", amount="渡すNP数")
 async def givepoints(interaction: discord.Interaction, user: discord.Member, amount: int):
-    await interaction.response.defer(ephemeral=True)  # これが大事♡
+    await interaction.response.defer(ephemeral=True)
 
     if amount <= 0:
-        await interaction.followup.send("1以上のポイントを指定してください。", ephemeral=True)
+        await interaction.followup.send("1以上のNPを指定してください。", ephemeral=True)
         return
 
     sender_id = str(interaction.user.id)
@@ -63,6 +63,16 @@ async def givepoints(interaction: discord.Interaction, user: discord.Member, amo
 
     success, message = await transfer_points(sender_id, receiver_id, amount)
     await interaction.followup.send(message, ephemeral=True)
+
+    # 受け取りユーザーに通知
+    try:
+        await user.send(f"{interaction.user.display_name} さんから **{amount}NP** を受け取りました！")
+    except discord.Forbidden:
+        await interaction.followup.send(
+            f"{user.display_name} さんにDMを送れなかったので、通知できませんでした。",
+            ephemeral=True
+        )
+
 
 @bot.event
 async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
