@@ -61,6 +61,9 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     user_id = str(user.id)
     message_id = str(payload.message_id)
     emoji = str(payload.emoji)
+    # イベント内の最後にこれ追加！
+await log_reaction(user_id, message_id, emoji)
+
 
     # すでにリアクションしていたらスキップ
     already_reacted = await has_already_reacted(user_id, message_id, emoji)
