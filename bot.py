@@ -3,19 +3,18 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 from db import add_user_if_not_exists, add_points, get_total_points, transfer_points, has_already_reacted, log_reaction
-import asyncpg  # 追加
-from dotenv import load_dotenv  # 追加
+from supabase import create_client, Client
+from dotenv import load_dotenv
 
-# .envファイルから環境変数を読み込む
+# 環境変数を読み込み
 load_dotenv()
 
-# データベース接続用関数（追加）
-async def get_db_connection():
-    database_url = os.getenv("DATABASE_URL")
-    if not database_url:
-        raise ValueError("DATABASE_URL が環境変数から取得できませんでした")
-    connection = await asyncpg.connect(database_url)
-    return connection
+# Supabase URL とキーの取得
+url = os.getenv("SUPABASE_URL")
+key = os.getenv("SUPABASE_KEY")
+
+# Supabaseクライアントを作成
+supabase: Client = create_client(url, key)
 
 class MyBot(commands.Bot):
     async def setup_hook(self):
@@ -50,4 +49,56 @@ async def mypoints(interaction: discord.Interaction):
 
 # /givepointsコマンド
 @bot.tree.command(name="givepoints", description="誰かにポイントを渡します")
-@app_commands.describe(user="ポイントを渡したい相手", amount="渡す_
+@app_commands.describe(user="ポイントを渡したい相手", amount="渡すポイント数")
+async def givepoints(interaction: discord.Interaction, user: discord.Member, amount: int):
+    if amount <= 0:
+        await interaction.response.send_message("1以上のポイントを指定してください。", ephemeral=True)
+        return
+
+    sender_id = str(interaction.user.id)
+    receiver_id = str(user.id)
+
+    # ポイントの移動
+    success, message = await transfer_points(sender_id, receiver_id, amount)
+    await interaction.response.send_message(message, ephemeral=True)
+
+@bot.event
+async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
+    # 対象チャンネルかどうかを確認
+    if payload.channel_id not in TARGET_CHANNEL_IDS:
+        return
+
+    # 自分のリアクションは無視
+    if payload.user_id == bot.user.id:
+        return
+
+    # ユーザーとメッセージ情報を取得
+    guild = bot.get_guild(payload.guild_id)
+    user = guild.get_member(payload.user_id)
+    if not user:
+        return
+
+    user_id = str(user.id)
+    message_id = str(payload.message_id)
+    emoji = str(payload.emoji)
+
+    # すでにリアクションしていたらスキップ
+    already_reacted = await has_already_reacted(user_id, message_id, emoji)
+    if already_reacted:
+        return
+
+    # ログに記録（リアクション情報）
+    await log_reaction(user_id, message_id, emoji)
+
+    # ユーザー情報を追加し、ポイントを加算
+    await add_user_if_not_exists(user_id, user.display_name)
+    await add_points(user_id, 1)
+
+    print(f"{user.display_name} にポイント追加しました！（リアクション in 対象チャンネル）")
+
+
+if __name__ == "__main__":
+    DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+    if not DISCORD_TOKEN:
+        raise ValueError("DISCORD_TOKEN が環境変数から取得できませんでした")
+    bot.run(DISCORD_TOKEN)
