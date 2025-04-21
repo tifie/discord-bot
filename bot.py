@@ -50,7 +50,6 @@ async def givepoints(interaction: discord.Interaction, user: discord.Member, amo
     success, message = await transfer_points(sender_id, receiver_id, amount)
     await interaction.response.send_message(message, ephemeral=True)
 
-# リアクション追加イベント
 @bot.event
 async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     # 対象チャンネルかどうかを確認
@@ -84,6 +83,7 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     await add_points(user_id, 1)
 
     print(f"{user.display_name} にポイント追加しました！（リアクション in 対象チャンネル）")
+
 
 if __name__ == "__main__":
     DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
