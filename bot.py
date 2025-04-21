@@ -52,15 +52,17 @@ async def mypoints(interaction: discord.Interaction):
 @bot.tree.command(name="givepoints", description="誰かにポイントを渡します")
 @app_commands.describe(user="ポイントを渡す相手", amount="渡すポイント数")
 async def givepoints(interaction: discord.Interaction, user: discord.Member, amount: int):
+    await interaction.response.defer(ephemeral=True)  # これが大事♡
+
     if amount <= 0:
-        await interaction.response.send_message("1以上のポイントを指定してください。", ephemeral=True)
+        await interaction.followup.send("1以上のポイントを指定してください。", ephemeral=True)
         return
 
     sender_id = str(interaction.user.id)
     receiver_id = str(user.id)
 
     success, message = await transfer_points(sender_id, receiver_id, amount)
-    await interaction.response.send_message(message, ephemeral=True)
+    await interaction.followup.send(message, ephemeral=True)
 
 @bot.event
 async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
