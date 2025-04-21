@@ -71,13 +71,20 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     message_id = str(payload.message_id)
     emoji = str(payload.emoji)
 
+    # リアクションされたメッセージをしたユーザーIDを取得
+    message_author_id = str(payload.message.author.id)
+
+    # ユーザーがすでに反応していた場合、処理を中止
     if await has_already_reacted(user_id, message_id, emoji):
         return
 
+    # ログにリアクションを記録
     await log_reaction(user_id, message_id, emoji)
-    await add_user_if_not_exists(user_id, user.display_name)
-    await add_points(user_id, 1)
-    print(f"{user.display_name} にポイント追加！（{emoji}）")
+
+    # メッセージをしたユーザーに10ポイント追加
+    await add_user_if_not_exists(message_author_id, payload.message.author.display_name)
+    await add_points(message_author_id, 10)  # 1リアクションにつき10ポイントを追加
+    print(f"{payload.message.author.display_name} にポイント追加！（{emoji}）")
 
 if __name__ == "__main__":
     token = os.getenv("DISCORD_TOKEN")
