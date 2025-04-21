@@ -86,7 +86,8 @@ async def transfer_points(from_discord_id: str, to_discord_id: str, points: int)
 
     return True, f"{points}ポイントを送信しました！"
 
-# すでにリアクションしたかを確認
+
+# すでにリアクション済みか確認する関数
 async def has_already_reacted(user_id: str, message_id: str, emoji: str):
     res = supabase.table("reaction_logs").select("id")\
         .eq("user_id", user_id)\
@@ -94,7 +95,10 @@ async def has_already_reacted(user_id: str, message_id: str, emoji: str):
         .eq("emoji", emoji)\
         .execute()
 
-    return len(res.data) > 0
+    if len(res.data) > 0:
+        return True
+    return False
+
 
 # リアクションをログに記録（重複登録を防ぐ）
 async def log_reaction(user_id: str, message_id: str, emoji: str):
