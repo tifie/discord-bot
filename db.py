@@ -1,6 +1,7 @@
 from supabase import create_client, Client
 from dotenv import load_dotenv
 import os
+import asyncpg
 
 # 環境変数を読み込み（Northflankでは勝手に環境変数セットされてる）
 load_dotenv()
@@ -77,3 +78,27 @@ async def transfer_points(from_discord_id: str, to_discord_id: str, points: int)
     }).execute()
 
     return True
+
+# すでに反応したかどうか確認する関数
+async def has_already_reacted(user_id: str, message_id: str, emoji: str) -> bool:
+    conn = await asyncpg.connect(os.getenv("DATABASE_URL"))
+    try:
+        result = await conn.fetchrow("""
+            SELECT 1 FROM reaction_logs
+            WHERE user_id = $1 AND message_id = $2 AND emoji = $3
+        """, user_id, message_id, emoji)
+        return result is not None
+    finally:
+        await conn.close()
+
+# 初めてのリアクションを記録（ポイント加算後に呼ぶとよい）
+async def log_reaction(user_id: str, message_id: str, emoji: str):
+    conn = await asyncpg.connect(os.getenv("DATABASE_URL"))
+    try:
+        await conn.execute("""
+            INSERT INTO reaction_logs (user_id, message_id, emoji)
+            VALUES ($1, $2, $3)
+            ON CONFLICT DO NOTHING
+        """, user_id, message_id, emoji)
+    finally:
+        await conn.close()
