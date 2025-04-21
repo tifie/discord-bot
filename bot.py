@@ -40,9 +40,14 @@ TARGET_CHANNEL_IDS = [
 
 @bot.tree.command(name="mypoints", description="自分のポイントを確認します")
 async def mypoints(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)  # 応答を即座に遅延させる（インタラクションを処理中に残す）
+
+    # ユーザーのポイント情報を取得
     await add_user_if_not_exists(str(interaction.user.id), interaction.user.display_name)
     points = await get_total_points(str(interaction.user.id))
-    await interaction.response.send_message(f"あなたの現在のポイントは **{points}ポイント** です！", ephemeral=True)
+
+    # ポイント情報を送信
+    await interaction.followup.send(f"現在のポイント： **{points}ポイント** ", ephemeral=True)
 
 @bot.tree.command(name="givepoints", description="誰かにポイントを渡します")
 @app_commands.describe(user="ポイントを渡す相手", amount="渡すポイント数")
