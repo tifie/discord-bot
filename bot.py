@@ -2,16 +2,12 @@ import os
 import discord
 from discord.ext import commands
 from discord import app_commands
-from db import add_user_if_not_exists, add_points, get_total_points, transfer_points
-
-# 監視したいチャンネルID（ここを自分のサーバーのチャンネルIDに置き換えてね！）
-TARGET_CHANNEL_ID = 123456789012345678  # ← チャンネルIDをここに！
+from db import add_user_if_not_exists, add_points, get_total_points, transfer_points, has_already_reacted
 
 class MyBot(commands.Bot):
     async def setup_hook(self):
         await self.tree.sync()
 
-# インテント設定（メッセージ・リアクション・メンバーなどを取得するため）
 intents = discord.Intents.default()
 intents.message_content = True
 intents.reactions = True
@@ -20,6 +16,13 @@ intents.guilds = True
 intents.members = True
 
 bot = MyBot(command_prefix="!", intents=intents)
+
+TARGET_CHANNEL_ID = [1363171100359659620,   # ← ネタ
+                     1360987317229322410,   #クリップ
+                     1362883049104343211,   #自慢
+                     1363192621698384112,   #動物
+                     1363170014349496571,   #飯
+                     1363192707207397546]
 
 # /mypointsコマンド
 @bot.tree.command(name="mypoints", description="自分のポイントを確認します")
@@ -38,24 +41,38 @@ async def givepoints(interaction: discord.Interaction, user: discord.Member, amo
 
     sender_id = str(interaction.user.id)
     receiver_id = str(user.id)
-
     success, message = await transfer_points(sender_id, receiver_id, amount)
     await interaction.response.send_message(message, ephemeral=True)
 
-# リアクションイベント：特定チャンネルのみでポイント加算
+# リアクション追加イベント
 @bot.event
 async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
-    if payload.channel_id != TARGET_CHANNEL_ID:
-        return  # 指定チャンネル以外は無視
+    if payload.channel_id not in TARGET_CHANNEL_IDS:
+        return
 
     if payload.user_id == bot.user.id:
-        return  # Bot自身のリアクションは無視
+        return
 
     guild = bot.get_guild(payload.guild_id)
     user = guild.get_member(payload.user_id)
-
     if not user:
         return
 
-    await add_user_if_not_exists(str(user.id), user.display_name)
-    await add_points(str(user.id), 1)  # リアクション1つで1ポイント加_
+    user_id = str(user.id)
+    message_id = str(payload.message_id)
+    emoji = str(payload.emoji)
+
+    # すでにリアクションしていたらスキップ
+    already_reacted = await has_already_reacted(user_id, message_id, emoji)
+    if already_reacted:
+        return
+
+    await add_user_if_not_exists(user_id, user.display_name)
+    await add_points(user_id, 1)
+    print(f"{user.display_name} にポイント追加しました！（リアクション in 対象チャンネル）")
+
+if __name__ == "__main__":
+    DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+    if not DISCORD_TOKEN:
+        raise ValueError("DISCORD_TOKEN が環境変数から取得できませんでした")
+    bot.run(DISCORD_TOKEN)
