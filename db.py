@@ -87,13 +87,19 @@ async def transfer_points(from_discord_id: str, to_discord_id: str, points: int)
     return True, f"{points}ポイントを送信しました！"
 
 # すでにリアクション済みか確認
-async def has_already_reacted(user_id: str, message_id: str, emoji: str) -> bool:
+async def log_reaction(user_id: str, message_id: str, emoji: str):
     res = supabase.table("reaction_logs").select("id")\
         .eq("user_id", user_id)\
         .eq("message_id", message_id)\
         .eq("emoji", emoji)\
         .execute()
-    return len(res.data) > 0
+
+    if len(res.data) == 0:
+        supabase.table("reaction_logs").insert({
+            "user_id": user_id,
+            "message_id": message_id,
+            "emoji": emoji
+        }).execute()
 
 # リアクションをログに記録
 async def log_reaction(user_id: str, message_id: str, emoji: str):
