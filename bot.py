@@ -2,7 +2,6 @@ import os
 import discord
 from discord.ext import commands
 from discord import app_commands
-from discord.app_commands import checks
 from discord.ui import Modal, TextInput
 from db import add_user_if_not_exists, add_points, get_total_points, transfer_points, has_already_reacted, log_reaction
 from supabase import create_client, Client
