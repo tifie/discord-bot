@@ -1,4 +1,4 @@
-修正して
+
 from supabase import create_client, Client
 from dotenv import load_dotenv
 import os
