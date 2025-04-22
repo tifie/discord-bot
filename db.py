@@ -50,17 +50,15 @@ async def get_total_points(discord_id: str):
 
     print(f"[get_total_points] ポイント情報取得を開始: user_id={user_id}")
     try:
-        res = await asyncio.wait_for(
-            supabase.table("points_log").select("points").eq("user_id", user_id).execute(),
-            timeout=5.0  # タイムアウト：5秒
-        )
+        res = await supabase.table("points_log").select("points").eq("user_id", user_id).execute()
         print(f"[get_total_points] ポイント情報取得完了: データ件数 = {len(res.data)}")
-    except asyncio.TimeoutError:
-        print("⚠️ [get_total_points] Supabaseアクセスがタイムアウトしました。")
-        return 0
     except Exception as e:
         print(f"❌ [get_total_points] エラー発生: {e}")
         return 0
+
+    total = sum(entry["points"] for entry in res.data)
+    print(f"[get_total_points] 合計ポイント: {total}")
+    return total
 
     total = sum(entry["points"] for entry in res.data)
     print(f"[get_total_points] 合計ポイント: {total}")
