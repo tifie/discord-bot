@@ -54,7 +54,7 @@ async def mypoints(interaction: discord.Interaction):
         print(f"add_user_if_not_exists 呼び出し時にエラー: {e}")
 
     # 修正: get_total_points を supabase とユーザーIDで呼び出し
-    points = await get_total_points(supabase, str(interaction.user.id))  # 修正箇所
+    points = await get_total_points(str(interaction.user.id))  # 修正箇所
     await interaction.followup.send(f"現在のnp： **{points}NP** ", ephemeral=True)
 
 
