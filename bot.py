@@ -70,7 +70,8 @@ async def givepoints(interaction: discord.Interaction, user: discord.Member, amo
     sender_id = str(interaction.user.id)
     receiver_id = str(user.id)
 
-    success, message = await transfer_points(supabase, sender_id, receiver_id, amount)
+    # ✅ supabase は不要
+    success, message = await transfer_points(sender_id, receiver_id, amount)
     await interaction.followup.send(message, ephemeral=True)
 
     try:
