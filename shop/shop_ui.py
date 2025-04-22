@@ -29,7 +29,7 @@ class CategoryShopView(View):
             cost = SHOP_ITEMS[item_name]["cost"]
             self.add_item(ShopButton(item_name, cost))
 
-async def send_shop_category(channel: discord.Interaction, category_name: str):
+async def send_shop_category(interaction: discord.Interaction, category_name: str):
     items = CATEGORY_DESCRIPTIONS.get(category_name, {})
     description = "\n".join(f"・{name} → {desc}" for name, desc in items.items())
     embed = discord.Embed(
@@ -37,5 +37,4 @@ async def send_shop_category(channel: discord.Interaction, category_name: str):
         description=description,
         color=0x00ffcc
     )
-    await channel.send(embed=embed, view=CategoryShopView(category_name))
-    await interaction.response.send_message(f"✅ {category_name} を表示しました！", ephemeral=True)
+    await interaction.response.send_message(embed=embed, view=CategoryShopView(category_name))
