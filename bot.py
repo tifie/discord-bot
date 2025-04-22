@@ -2,10 +2,12 @@ import os
 import discord
 from discord.ext import commands
 from discord import app_commands
+from discord.app_commands import checks
 from db import add_user_if_not_exists, add_points, get_total_points, transfer_points, has_already_reacted, log_reaction
 from supabase import create_client, Client
 from dotenv import load_dotenv
 from shop.shop_ui import send_shop
+from shop.shop_ui import send_shop_category
 
 # 環境変数を読み込み
 load_dotenv()
@@ -110,10 +112,10 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     await add_points(message_author_id, 10)  # 1リアクションにつき10ポイントを追加
     print(f"{message.author.display_name} にポイント追加！（{emoji}）")
 
-@bot.tree.command(name="setup_shop", description="ショップのメッセージを投稿（管理者専用）")
+@tree.command(name="setup_shop_profile", description="プロフ変更系のショップを表示します")
 @app_commands.checks.has_permissions(administrator=True)
-async def setup_shop(interaction: discord.Interaction):
-    await send_shop(interaction.channel)
+async def setup_shop_profile(interaction: discord.Interaction):
+    await send_shop_category(interaction.channel, "プロフ変更系")
     await interaction.response.send_message("✅ ショップを表示しました！", ephemeral=True)
 
 if __name__ == "__main__":
