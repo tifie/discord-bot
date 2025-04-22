@@ -36,8 +36,8 @@ async def add_points(discord_id: str, points: int, reason: str = "リアクシ�
     await supabase.table("points_log").insert({
         "user_id": user_id,
         "points": points,
-        "reason": reason
-    }).execute()
+        "reason": reason}
+    ).execute()
 
 async def get_total_points(discord_id: str):
     user_id = await get_user_id(discord_id)
