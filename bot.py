@@ -3,11 +3,12 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 from discord.app_commands import checks
+from discord.ui import Modal, TextInput
 from db import add_user_if_not_exists, add_points, get_total_points, transfer_points, has_already_reacted, log_reaction
 from supabase import create_client, Client
 from dotenv import load_dotenv
 from shop.shop_ui import send_shop_category
-from shop.shop_ui import ShopButton, RenameModal
+from shop.shop_ui import ShopButton
 
 # 環境変数を読み込み
 load_dotenv()
@@ -118,6 +119,7 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
 @app_commands.checks.has_permissions(administrator=True)
 async def shop_profile(interaction: discord.Interaction):
     await send_shop_category(interaction, "プロフ変更系")
+  
 # 名前変更
 class RenameModal(Modal, title="名前を変更します！"):
     def __init__(self, user: discord.Member):
@@ -133,13 +135,13 @@ class RenameModal(Modal, title="名前を変更します！"):
 
     async def on_submit(self, interaction: discord.Interaction):
         try:
+            # 名前変更処理
             await self.user.edit(nick=self.new_name.value)
             await interaction.response.send_message(
                 f"✅ ニックネームを「{self.new_name.value}」に変更したよ！", ephemeral=True
             )
         except discord.Forbidden:
             await interaction.response.send_message("⚠️ ニックネームを変更する権限がないみたい…", ephemeral=True)
-
 
 if __name__ == "__main__":
     token = os.getenv("DISCORD_TOKEN")
