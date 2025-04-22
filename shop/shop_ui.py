@@ -13,7 +13,7 @@ from db import (
 )
 from supabase import create_client, Client
 from dotenv import load_dotenv
-from shop.shop_handler import send_shop_category
+
 
 
 # .env から環境変数読み込み
@@ -122,6 +122,7 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
 @bot.tree.command(name="shop_profile", description="プロフィール系ショップを表示します")
 @app_commands.checks.has_permissions(administrator=True)
 async def send_profile_shop(interaction: discord.Interaction):
+    from shop.shop_handler import send_shop_category
     await send_shop_category(interaction, "プロフ変更系")
 
 
