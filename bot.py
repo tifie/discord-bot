@@ -29,6 +29,7 @@ intents.guilds = True
 intents.members = True
 
 bot = MyBot(command_prefix="!", intents=intents)
+tree = app_commands.CommandTree(bot) 
 
 # 対象チャンネルID
 TARGET_CHANNEL_IDS = [
