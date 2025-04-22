@@ -1,9 +1,9 @@
-# shop/shop_ui.py
 import discord
 from discord.ext import commands
-from discord.ui import View
+from discord.ui import View, Button, Modal, TextInput
 from shop.shop_items import SHOP_ITEMS
 from shop.shop_handler import ShopButton
+from db import add_user_if_not_exists, mark_name_change_purchased
 
 CATEGORY_DESCRIPTIONS = {
     "プロフ変更系": {
@@ -20,6 +20,31 @@ SHOP_ITEMS = {
     "ネームカラー変更権": {"cost": 150},
     # 他も追加
 }
+
+class ShopButton(Button):
+    def __init__(self, item_name, cost):
+        super().__init__(label=f"{item_name} - {cost}NP", style=discord.ButtonStyle.primary)
+        self.item_name = item_name
+        self.cost = cost
+
+    async def callback(self, interaction: discord.Interaction):
+        # ユーザーが購入可能かどうか確認
+        user_id = str(interaction.user.id)
+        user_data = await add_user_if_not_exists(user_id, interaction.user.display_name)
+
+        # ポイントが足りない場合
+        if user_data["points"] < self.cost:
+            await interaction.response.send_message(f"⚠️ ポイントが足りません。{self.cost}NPが必要です。", ephemeral=True)
+            return
+
+        # アイテムを購入（ポイントを減らす）
+        await add_points(user_id, -self.cost)  # 購入処理
+        await interaction.response.send_message(f"✅ {self.item_name} を購入しました！", ephemeral=True)
+
+        # 購入されたアイテムが「名前変更権」だった場合、名前変更モーダルを表示
+        if self.item_name == "名前変更権":
+            modal = RenameModal(interaction.user)
+            await interaction.response.send_modal(modal)
 
 class CategoryShopView(View):
     def __init__(self, category_name):
@@ -38,3 +63,34 @@ async def send_shop_category(interaction: discord.Interaction, category_name: st
         color=0x00ffcc
     )
     await interaction.response.send_message(embed=embed, view=CategoryShopView(category_name))
+
+# 名前変更モーダル
+class RenameModal(Modal, title="名前を変更します！"):
+    def __init__(self, user: discord.Member):
+        super().__init__()
+        self.user = user
+        self.new_name = TextInput(
+            label="新しい名前",
+            placeholder="ここに新しいニックネームを入力してね",
+            max_length=32
+        )
+        self.add_item(self.new_name)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        user_data = await add_user_if_not_exists(str(self.user.id), self.user.display_name)
+        
+        # 名前変更済みかどうかを確認
+        if user_data["has_renamed"]:
+            await interaction.response.send_message("⚠️ すでに名前を変更しています。名前変更は一度だけです。", ephemeral=True)
+            return
+
+        try:
+            # 名前変更処理
+            await self.user.edit(nick=self.new_name.value)
+            # 名前変更後、データベースに変更を反映
+            await mark_name_change_purchased(self.user.id)
+            await interaction.response.send_message(
+                f"✅ ニックネームを「{self.new_name.value}」に変更しました！", ephemeral=True
+            )
+        except discord.Forbidden:
+            await interaction.response.send_message("⚠️ ニックネームを変更する権限がないみたい…", ephemeral=True)
