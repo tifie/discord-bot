@@ -7,7 +7,7 @@ from discord.ui import Modal, TextInput
 from db import add_user_if_not_exists, add_points, get_total_points, transfer_points, has_already_reacted, log_reaction
 from supabase import create_client, Client
 from dotenv import load_dotenv
-from shop.shop_ui import send_shop_category
+
 from shop.shop_ui import ShopButton
 
 # 環境変数を読み込み
@@ -118,6 +118,7 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
 @bot.tree.command(name="shop_profile", description="プロフィール系ショップを表示します")
 @app_commands.checks.has_permissions(administrator=True)
 async def shop_profile(interaction: discord.Interaction):
+    from shop.shop_ui import send_shop_category
     await send_shop_category(interaction, "プロフ変更系")
   
 # 名前変更
