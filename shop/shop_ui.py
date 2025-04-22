@@ -2,6 +2,7 @@ import os
 import discord
 from discord.ext import commands
 from discord import app_commands
+from discord.ui import Button, View
 from discord.ui import Modal, TextInput
 from db import (
     add_user_if_not_exists,
@@ -124,6 +125,14 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
 async def send_profile_shop(interaction: discord.Interaction):
     from shop.shop_handler import send_shop_category
     await send_shop_category(interaction, "プロフ変更系")
+# ShopButtonクラスの定義
+class ShopButton(Button):
+    def __init__(self, label: str, style: discord.ButtonStyle = discord.ButtonStyle.primary, custom_id: str = None):
+        super().__init__(label=label, style=style, custom_id=custom_id)
+
+    async def callback(self, interaction: discord.Interaction):
+        # ボタンが押された時の動作を定義
+        await interaction.response.send_message(f"{self.label} ボタンが押されました！", ephemeral=True)
 
 
 # モーダル定義（名前変更）
