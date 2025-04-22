@@ -113,7 +113,7 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
 @bot.tree.command(name="setup_shop", description="ショップのメッセージを投稿（管理者専用）")
 @app_commands.checks.has_permissions(administrator=True)
 async def send_shop(interaction: discord.Interaction):
-    await post_shop_message(interaction.channel)
+    await send_shop(interaction.channel)
     await interaction.response.send_message("✅ ショップを表示しました！", ephemeral=True)
 
 if __name__ == "__main__":
