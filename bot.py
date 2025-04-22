@@ -32,7 +32,6 @@ intents.members = True
 
 bot = MyBot(command_prefix="!", intents=intents)
 
-
 # 対象チャンネルID
 TARGET_CHANNEL_IDS = [
     1363171100359659620,
@@ -43,33 +42,28 @@ TARGET_CHANNEL_IDS = [
     1363192707207397546
 ]
 
-@bot.tree.command(name="mypoints", description="自分のNPを確認します")
+@bot.tree.command(name="mypoints", description="自分のnpを確認します")
 async def mypoints(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=True)  # 応答を即座に遅延させる（インタラクションを処理中に残す）
+    await interaction.response.defer(ephemeral=True)
+    await add_user_if_not_exists(supabase, str(interaction.user.id), interaction.user.display_name)
+    points = await get_total_points(supabase, str(interaction.user.id))
+    await interaction.followup.send(f"現在のnp： **{points}NP** ", ephemeral=True)
 
-    # ユーザーのポイント情報を取得
-    await add_user_if_not_exists(str(interaction.user.id), interaction.user.display_name)
-    points = await get_total_points(str(interaction.user.id))
-
-    # ポイント情報を送信
-    await interaction.followup.send(f"現在のNP： **{points}NP** ", ephemeral=True)
-
-@bot.tree.command(name="givepoints", description="誰かにNPを渡します")
+@bot.tree.command(name="givepoints", description="誰かのnpを渡します")
 @app_commands.describe(user="NPを渡す相手", amount="渡すNP数")
 async def givepoints(interaction: discord.Interaction, user: discord.Member, amount: int):
     await interaction.response.defer(ephemeral=True)
 
     if amount <= 0:
-        await interaction.followup.send("1以上のNPを指定してください。", ephemeral=True)
+        await interaction.followup.send("1以上のnpを指定してください。", ephemeral=True)
         return
 
     sender_id = str(interaction.user.id)
     receiver_id = str(user.id)
 
-    success, message = await transfer_points(sender_id, receiver_id, amount)
+    success, message = await transfer_points(supabase, sender_id, receiver_id, amount)
     await interaction.followup.send(message, ephemeral=True)
 
-    # 受け取りユーザーに通知
     try:
         await user.send(f"{interaction.user.display_name} さんから **{amount}NP** を受け取りました！")
     except discord.Forbidden:
@@ -77,7 +71,6 @@ async def givepoints(interaction: discord.Interaction, user: discord.Member, amo
             f"{user.display_name} さんにDMを送れなかったので、通知できませんでした。",
             ephemeral=True
         )
-
 
 @bot.event
 async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
@@ -93,35 +86,29 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     message_id = str(payload.message_id)
     emoji = str(payload.emoji)
 
-    # メッセージをしたユーザーを取得
     channel = bot.get_channel(payload.channel_id)
     message = await channel.fetch_message(payload.message_id)
-    
+
     if not message:
         return
 
     message_author_id = str(message.author.id)
 
-    # ユーザーがすでに反応していた場合、処理を中止
-    if await has_already_reacted(user_id, message_id, emoji):
+    if await has_already_reacted(supabase, user_id, message_id, emoji):
         return
 
-    # ログにリアクションを記録
-    await log_reaction(user_id, message_id, emoji)
+    await log_reaction(supabase, user_id, message_id, emoji)
 
-    # メッセージをしたユーザーに10ポイント追加
-    await add_user_if_not_exists(message_author_id, message.author.display_name)
-    await add_points(message_author_id, 10)  # 1リアクションにつき10ポイントを追加
+    await add_user_if_not_exists(supabase, message_author_id, message.author.display_name)
+    await add_points(supabase, message_author_id, 10)
     print(f"{message.author.display_name} にポイント追加！（{emoji}）")
 
-# プロフィールショップ
 @bot.tree.command(name="shop_profile", description="プロフィール系ショップを表示します")
 @app_commands.checks.has_permissions(administrator=True)
 async def shop_profile(interaction: discord.Interaction):
     from shop.shop_ui import send_shop_category
     await send_shop_category(interaction, "プロフ変更系")
-  
-# 名前変更
+
 class RenameModal(Modal, title="名前を変更します！"):
     def __init__(self, user: discord.Member):
         super().__init__()
@@ -136,7 +123,6 @@ class RenameModal(Modal, title="名前を変更します！"):
 
     async def on_submit(self, interaction: discord.Interaction):
         try:
-            # 名前変更処理
             await self.user.edit(nick=self.new_name.value)
             await interaction.response.send_message(
                 f"✅ ニックネームを「{self.new_name.value}」に変更したよ！", ephemeral=True
