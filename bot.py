@@ -44,9 +44,18 @@ TARGET_CHANNEL_IDS = [
 @bot.tree.command(name="mypoints", description="自分のnpを確認します")
 async def mypoints(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
-    await add_user_if_not_exists(supabase, str(interaction.user.id), interaction.user.display_name)
+
+    # ログを追加
+    print(f"mypoints コマンドが呼ばれました。discord_id: {interaction.user.id}, discord_name: {interaction.user.display_name}")
+    
+    try:
+        await add_user_if_not_exists(supabase, str(interaction.user.id), interaction.user.display_name)
+    except Exception as e:
+        print(f"add_user_if_not_exists 呼び出し時にエラー: {e}")
+
     points = await get_total_points(supabase, str(interaction.user.id))
     await interaction.followup.send(f"現在のnp： **{points}NP** ", ephemeral=True)
+
 
 @bot.tree.command(name="givepoints", description="誰かのnpを渡します")
 @app_commands.describe(user="NPを渡す相手", amount="渡すNP数")
