@@ -29,7 +29,7 @@ intents.guilds = True
 intents.members = True
 
 bot = MyBot(command_prefix="!", intents=intents)
-tree = app_commands.CommandTree(bot) 
+
 
 # 対象チャンネルID
 TARGET_CHANNEL_IDS = [
@@ -112,10 +112,12 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     await add_points(message_author_id, 10)  # 1リアクションにつき10ポイントを追加
     print(f"{message.author.display_name} にポイント追加！（{emoji}）")
 
-@tree.command(name="shop_profile", description="プロフィール系ショップを表示します")
+
+@bot.tree.command(name="shop_profile", description="プロフィール系ショップを表示します")
 @app_commands.checks.has_permissions(administrator=True)
 async def shop_profile(interaction: discord.Interaction):
     await send_shop_category(interaction, "プロフ変更系")
+
 
 
 if __name__ == "__main__":
