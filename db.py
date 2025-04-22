@@ -14,20 +14,18 @@ key = os.getenv("SUPABASE_KEY")
 supabase: Client = create_client(url, key)
 
 # ユーザーが存在しない場合、ユーザー情報を追加
-async def add_user_if_not_exists(discord_id: str, name: str):
+async def add_user_if_not_exists(discord_id: str, discord_name: str):
+    # Supabaseからデータを非同期に取得
     res = await supabase.table("users").select("id").eq("discord_id", discord_id).execute()
-    if len(res.data) == 0:
-        insert_res = await supabase.table("users").insert({
+    
+    # res.dataがリスト（または辞書）として返されるので、そこから必要なデータを取り出す
+    if res.data:  # ユーザーが既に存在する場合
+        return res.data[0]  # idなどの情報を返す
+    else:
+        # ユーザーが存在しない場合は新規追加などの処理を行う
+        return await supabase.table("users").insert({
             "discord_id": discord_id,
-            "name": name
-        }).execute()
-        user_id = insert_res.data[0]["id"]
-
-        # 初期ポイントとして0を設定
-        await supabase.table("points_log").insert({
-            "user_id": user_id,
-            "points": 0,
-            "reason": "初期ポイント"
+            "discord_name": discord_name
         }).execute()
 
 # ユーザーIDを取得
