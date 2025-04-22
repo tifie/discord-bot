@@ -1,6 +1,7 @@
 from supabase import create_client, Client
 from dotenv import load_dotenv
 import os
+import asyncio
 
 # 環境変数を読み込み
 load_dotenv()
@@ -127,3 +128,11 @@ async def get_user_data(user_id: str):
 # ユーザーデータ保存
 async def save_user_data(user_data: dict):
     await supabase.table("users").update(user_data).eq("id", user_data["id"]).execute()
+
+# 非同期処理を実行
+async def main():
+    # 例えばユーザーの追加を行う
+    await add_user_if_not_exists("discord_id_example", "Example User")
+
+if __name__ == "__main__":
+    asyncio.run(main())
