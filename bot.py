@@ -111,11 +111,11 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     await add_points(message_author_id, 10)  # 1リアクションにつき10ポイントを追加
     print(f"{message.author.display_name} にポイント追加！（{emoji}）")
 
-@tree.command(name="setup_shop_profile", description="プロフ変更系のショップを表示します")
+@tree.command(name="shop_profile", description="プロフィール系ショップを表示します")
 @app_commands.checks.has_permissions(administrator=True)
-async def setup_shop_profile(interaction: discord.Interaction):
-    await send_shop_category(interaction.channel, "プロフ変更系")
-    await interaction.response.send_message("✅ ショップを表示しました！", ephemeral=True)
+async def shop_profile(interaction: discord.Interaction):
+    await send_shop_category(interaction, "プロフ変更系")
+
 
 if __name__ == "__main__":
     token = os.getenv("DISCORD_TOKEN")
