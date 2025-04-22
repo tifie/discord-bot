@@ -5,7 +5,7 @@ from discord import Interaction
 from shop.shop_items import SHOP_ITEMS
 from db import add_user_if_not_exists, get_total_points, add_points
 import asyncio
-
+from discord.ui import View
 class ShopButton(Button):
     def __init__(self, item_name: str, cost: int):
         super().__init__(label=f"{item_name} - {cost}pt", style=discord.ButtonStyle.primary)
@@ -69,3 +69,26 @@ class ConfirmPurchaseView(discord.ui.View):
     @discord.ui.button(label="キャンセル", style=discord.ButtonStyle.danger)
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.edit_message(content="キャンセルしました。", view=None)
+
+# shop/shop_handler.py の末尾に追加してOK！
+
+
+
+class ShopView(View):
+    def __init__(self, category_items: dict):
+        super().__init__(timeout=None)
+        for item_name, cost in category_items.items():
+            self.add_item(ShopButton(item_name, cost))
+
+async def send_shop_category(interaction: discord.Interaction, category: str):
+    category_items = SHOP_ITEMS.get(category)
+    if not category_items:
+        await interaction.response.send_message("そのカテゴリは存在しません。", ephemeral=True)
+        return
+
+    await interaction.response.send_message(
+        f"🛒 **{category}** カテゴリの商品一覧です！",
+        view=ShopView(category_items),
+        ephemeral=True
+    )
+
