@@ -12,7 +12,6 @@ from db import (
     log_reaction
 )
 from supabase import create_client, Client
-from shop.shop_ui import send_shop_category
 from dotenv import load_dotenv
 
 
@@ -122,8 +121,9 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
 @bot.tree.command(name="shop_profile", description="プロフィール系ショップを表示します")
 @app_commands.checks.has_permissions(administrator=True)
 async def send_profile_shop(interaction: discord.Interaction):
-  
+    from shop.shop_ui import send_shop_category  # 👈関数の中でインポート！
     await send_shop_category(interaction, "プロフ変更系")
+
 
 # モーダル定義（名前変更）
 class RenameModal(Modal, title="名前を変更します！"):
