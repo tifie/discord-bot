@@ -7,6 +7,7 @@ from db import add_user_if_not_exists, add_points, get_total_points, transfer_po
 from supabase import create_client, Client
 from dotenv import load_dotenv
 from shop.shop_ui import send_shop_category
+from shop.shop_ui import ShopButton, RenameModal
 
 # 環境変数を読み込み
 load_dotenv()
@@ -112,12 +113,32 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     await add_points(message_author_id, 10)  # 1リアクションにつき10ポイントを追加
     print(f"{message.author.display_name} にポイント追加！（{emoji}）")
 
-
+# プロフィールショップ
 @bot.tree.command(name="shop_profile", description="プロフィール系ショップを表示します")
 @app_commands.checks.has_permissions(administrator=True)
 async def shop_profile(interaction: discord.Interaction):
     await send_shop_category(interaction, "プロフ変更系")
+# 名前変更
+class RenameModal(Modal, title="名前を変更します！"):
+    def __init__(self, user: discord.Member):
+        super().__init__()
+        self.user = user
 
+        self.new_name = TextInput(
+            label="新しい名前",
+            placeholder="ここに新しいニックネームを入力してね",
+            max_length=32
+        )
+        self.add_item(self.new_name)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            await self.user.edit(nick=self.new_name.value)
+            await interaction.response.send_message(
+                f"✅ ニックネームを「{self.new_name.value}」に変更したよ！", ephemeral=True
+            )
+        except discord.Forbidden:
+            await interaction.response.send_message("⚠️ ニックネームを変更する権限がないみたい…", ephemeral=True)
 
 
 if __name__ == "__main__":
