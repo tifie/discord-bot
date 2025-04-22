@@ -6,7 +6,6 @@ from discord.app_commands import checks
 from db import add_user_if_not_exists, add_points, get_total_points, transfer_points, has_already_reacted, log_reaction
 from supabase import create_client, Client
 from dotenv import load_dotenv
-from shop.shop_ui import send_shop
 from shop.shop_ui import send_shop_category
 
 # 環境変数を読み込み
