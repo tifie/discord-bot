@@ -16,7 +16,7 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 async def add_user_if_not_exists(discord_id: str, discord_name: str):
     print(f"Checking if user with discord_id: {discord_id} exists...")
-    res = await supabase.table("users").select("id").eq("discord_id", discord_id).execute()
+    res = supabase.table("users").select("id").eq("discord_id", discord_id).execute()
     
     if res.data:
         print(f"User found: {res.data[0]}")
