@@ -22,7 +22,7 @@ class ShopButton(Button):
         self.item_name = item_name
         self.cost = cost
 
-    async def callback(self, interaction: discord.Interaction):  # ← クラスの中！
+    async def callback(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
         user_data = await add_user_if_not_exists(user_id, interaction.user.display_name)
 
@@ -33,10 +33,12 @@ class ShopButton(Button):
         await add_points(user_id, -self.cost)
 
         if self.item_name == "名前変更権":
+            await interaction.response.defer(ephemeral=True)  # ⭐ 最初に一旦 defer
             modal = RenameModal(interaction.user)
-            await interaction.response.send_modal(modal)
+            await interaction.followup.send_modal(modal)      # ⭐ その後 followup でモーダル送信
         else:
             await interaction.response.send_message(f"✅ {self.item_name} を購入しました！", ephemeral=True)
+
 
 
 class CategoryShopView(View):
