@@ -17,17 +17,16 @@ CATEGORY_DESCRIPTIONS = {
 }
 
 class ShopButton(Button):
-   　　 def __init__(self, item_name, cost, supabase):  
-       　　 super().__init__(label=f"{item_name} - {cost}NP", style=discord.ButtonStyle.primary)
-        　　self.item_name = item_name
-        　　self.cost = cost
-        　　self.supabase = supabase  # ⭐ ここ！！
+    def __init__(self, item_name, cost, supabase):  
+        super().__init__(label=f"{item_name} - {cost}NP", style=discord.ButtonStyle.primary)
+        self.item_name = item_name
+        self.cost = cost
+        self.supabase = supabase  # ⭐ ここ！！
 
-    　　 async def callback(self, interaction: discord.Interaction):
-        　　user_id = str(interaction.user.id)
-        　　user_data = await add_user_if_not_exists(self.supabase, user_id, interaction.user.display_name)
-        　# ↑ ここも self.supabase を使う！
-
+    async def callback(self, interaction: discord.Interaction):
+        user_id = str(interaction.user.id)
+        user_data = await add_user_if_not_exists(self.supabase, user_id, interaction.user.display_name)
+        # ↑ ここも self.supabase を使う！
 
         if user_data["points"] < self.cost:
             await interaction.response.send_message(f"⚠️ ポイントが足りません。{self.cost}NPが必要です。", ephemeral=True)
@@ -40,6 +39,7 @@ class ShopButton(Button):
             await interaction.response.send_modal(modal)
         else:
             await interaction.response.send_message(f"✅ {self.item_name} を購入しました！", ephemeral=True)
+
 
 
 
