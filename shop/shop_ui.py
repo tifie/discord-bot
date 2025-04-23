@@ -17,16 +17,17 @@ CATEGORY_DESCRIPTIONS = {
 }
 
 class ShopButton(Button):
-    def __init__(self, item_name, cost):
-        super().__init__(label=f"{item_name} - {cost}NP", style=discord.ButtonStyle.primary)
-        self.item_name = item_name
-        self.cost = cost
+   　　 def __init__(self, item_name, cost, supabase):
+       　　 super().__init__(label=f"{item_name} - {cost}NP", style=discord.ButtonStyle.primary)
+        　　self.item_name = item_name
+        　　self.cost = cost
+        　　self.supabase = supabase  # ⭐ ここ！！
 
-    async def callback(self, interaction: discord.Interaction):
-        print(f"ボタン押された！user={interaction.user.name}")
+    　　async def callback(self, interaction: discord.Interaction):
+        　　user_id = str(interaction.user.id)
+        　　user_data = await add_user_if_not_exists(self.supabase, user_id, interaction.user.display_name)
+        　# ↑ ここも self.supabase を使う！
 
-        user_id = str(interaction.user.id)  # ← ここも4スペース
-        user_data = await add_user_if_not_exists(supabase, user_id, interaction.user.display_name)
 
         if user_data["points"] < self.cost:
             await interaction.response.send_message(f"⚠️ ポイントが足りません。{self.cost}NPが必要です。", ephemeral=True)
@@ -43,12 +44,12 @@ class ShopButton(Button):
 
 
 class CategoryShopView(View):
-    def __init__(self, category_name):
+    def __init__(self, category_name, supabase):
         super().__init__(timeout=None)
         items = CATEGORY_DESCRIPTIONS.get(category_name, {})
         for item_name in items:
             cost = SHOP_ITEMS[item_name]["cost"]
-            self.add_item(ShopButton(item_name, cost))
+            self.add_item(ShopButton(item_name, cost, self.supabase))
 
 async def send_shop_category(interaction: discord.Interaction, category_name: str):
     items = CATEGORY_DESCRIPTIONS.get(category_name, {})
@@ -58,7 +59,7 @@ async def send_shop_category(interaction: discord.Interaction, category_name: st
         description=description,
         color=0x00ffcc
     )
-    await interaction.response.send_message(embed=embed, view=CategoryShopView(category_name))
+    await interaction.response.send_message(embed=embed, view=CategoryShopView(category_name, supabase))
 
 # 名前変更モーダル
 class RenameModal(Modal, title="名前を変更します！"):
