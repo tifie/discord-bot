@@ -23,6 +23,8 @@ class ShopButton(Button):
         self.cost = cost
 
     async def callback(self, interaction: discord.Interaction):
+        print(f"ボタン押された！user={interaction.user.name}")
+
         user_id = str(interaction.user.id)  # ← ここも4スペース
         user_data = await add_user_if_not_exists(user_id, interaction.user.display_name)
 
