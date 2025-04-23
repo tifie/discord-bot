@@ -22,22 +22,21 @@ class ShopButton(Button):
         self.item_name = item_name
         self.cost = cost
 
-async def callback(self, interaction: discord.Interaction):
-    user_id = str(interaction.user.id)
-    user_data = await add_user_if_not_exists(user_id, interaction.user.display_name)
+    async def callback(self, interaction: discord.Interaction):  # ← クラスの中！
+        user_id = str(interaction.user.id)
+        user_data = await add_user_if_not_exists(user_id, interaction.user.display_name)
 
-    if user_data["points"] < self.cost:
-        await interaction.response.send_message(f"⚠️ ポイントが足りません。{self.cost}NPが必要です。", ephemeral=True)
-        return
+        if user_data["points"] < self.cost:
+            await interaction.response.send_message(f"⚠️ ポイントが足りません。{self.cost}NPが必要です。", ephemeral=True)
+            return
 
-    await add_points(user_id, -self.cost)
+        await add_points(user_id, -self.cost)
 
-    # 購入されたアイテムが「名前変更権」だった場合
-    if self.item_name == "名前変更権":
-        modal = RenameModal(interaction.user)
-        await interaction.response.send_modal(modal)
-    else:
-        await interaction.response.send_message(f"✅ {self.item_name} を購入しました！", ephemeral=True)
+        if self.item_name == "名前変更権":
+            modal = RenameModal(interaction.user)
+            await interaction.response.send_modal(modal)
+        else:
+            await interaction.response.send_message(f"✅ {self.item_name} を購入しました！", ephemeral=True)
 
 
 class CategoryShopView(View):
