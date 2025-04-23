@@ -139,7 +139,27 @@ class RenameModal(Modal, title="名前を変更します！"):
             )
         except discord.Forbidden:
             await interaction.response.send_message("⚠️ ニックネームを変更する権限がないみたい…", ephemeral=True)
+@bot.command()
+async def add_points(ctx, points: int):
+    """自分に指定したポイントを加算するコマンド"""
+    user_id = str(ctx.author.id)  # コマンドを実行したユーザーのIDを取得
+    success = await add_points_to_user(user_id, points)  # add_points_to_user関数でDBに反映
 
+    if success:
+        await ctx.send(f"✅ {points}ポイントを {ctx.author.display_name} さんに付与しました！")
+    else:
+        await ctx.send("⚠️ ポイントの付与に失敗しました。")
+
+async def add_points_to_user(user_id: str, points: int):
+    # ここにSupabaseやデータベースの処理を記述
+    # 例:
+    res = await supabase.table("users").select("points").eq("discord_id", user_id).execute()
+    if res.data:
+        current_points = res.data[0]["points"]
+        new_points = current_points + points
+        await supabase.table("users").update({"points": new_points}).eq("discord_id", user_id).execute()
+        return True
+    return False
 
 if __name__ == "__main__":
     token = os.getenv("DISCORD_TOKEN")
