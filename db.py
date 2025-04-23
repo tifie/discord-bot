@@ -16,7 +16,7 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 async def add_user_if_not_exists(discord_id: str, discord_name: str):
     # ユーザーがすでに存在するか確認
-    res =　supabase.table("users").select("id").eq("discord_id", discord_id).execute()
+    res = supabase.table("users").select("id").eq("discord_id", discord_id).execute()
     
     # ユーザーが存在すればその情報を返す
     if res.data:
@@ -31,7 +31,7 @@ async def add_user_if_not_exists(discord_id: str, discord_name: str):
     return inserted_user.data[0]
 
 async def get_user_id(discord_id: str):
-    res =  supabase.table("users").select("id").eq("discord_id", discord_id).execute()
+    res = supabase.table("users").select("id").eq("discord_id", discord_id).execute()
     
     # ユーザーIDが見つかればそのIDを返す
     if res.data:
