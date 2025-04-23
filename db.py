@@ -1,7 +1,7 @@
 import os
 import asyncio
 from dotenv import load_dotenv
-from supabase import create_client,　Client
+from supabase import create_client, Client
 
 # 環境変数を読み込む
 load_dotenv()
