@@ -23,7 +23,7 @@ class ShopButton(Button):
         self.cost = cost
 
     async def callback(self, interaction: discord.Interaction):
-   　　 user_id = str(interaction.user.id)
+    　　user_id = str(interaction.user.id)
     　　user_data = await add_user_if_not_exists(user_id, interaction.user.display_name)
 
     if user_data["points"] < self.cost:
