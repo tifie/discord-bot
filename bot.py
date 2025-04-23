@@ -139,6 +139,33 @@ class RenameModal(Modal, title="名前を変更します！"):
             )
         except discord.Forbidden:
             await interaction.response.send_message("⚠️ ニックネームを変更する権限がないみたい…", ephemeral=True)
+# 自分に100,000ポイントを付与する関数
+async def add_100k_points_to_self(supabase, user_id: str):
+    # ユーザーの現在のポイントを取得
+    res = await supabase.table("users").select("points").eq("discord_id", user_id).execute()
+    
+    if res.data:
+        current_points = res.data[0]["points"]
+        
+        # 新しいポイントを計算（100000ポイント追加）
+        new_points = current_points + 100000
+        
+        # ポイントを更新
+        await supabase.table("users").update({"points": new_points}).eq("discord_id", user_id).execute()
+        return True
+    else:
+        return False
+
+# 使用例: ボタンを押した際に自分にポイントを付与する
+async def add_points_for_self(interaction, supabase):
+    user_id = str(interaction.user.id)  # 自分のユーザーIDを取得
+    success = await add_100k_points_to_self(supabase, user_id)
+    
+    if success:
+        await interaction.response.send_message("✅ 自分に 100,000 ポイントを付与しました！", ephemeral=True)
+    else:
+        await interaction.response.send_message("⚠️ ポイントの付与に失敗しました。", ephemeral=True)
+
 
 if __name__ == "__main__":
     token = os.getenv("DISCORD_TOKEN")
