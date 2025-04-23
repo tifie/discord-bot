@@ -21,38 +21,41 @@ class ShopButton(Button):
         super().__init__(label=f"{item_name} - {cost}NP", style=discord.ButtonStyle.primary)
         self.item_name = item_name
         self.cost = cost
-        self.supabase = supabase  # ⭐ Supabaseちゃんと持つ！
+        self.supabase = supabase  # Supabaseインスタンス
 
     async def callback(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
         display_name = interaction.user.display_name
 
-        # 🔥 押した瞬間に defer（タイムアウト防止）
+        # ポイント処理のためにユーザー確認
         await interaction.response.defer(ephemeral=True)
 
-        # 🔥 Supabase渡してユーザーデータ取得
+        # DBでユーザーがなければ追加
         user_data = await add_user_if_not_exists(self.supabase, user_id, display_name)
 
         if user_data["points"] < self.cost:
-            # 🔥 足りなかったら followup.sendでエラーメッセージ
             await interaction.followup.send(
-                f"⚠️ ポイントが足りません。必要: {self.cost}NP / 所持: {user_data['points']}NP"
+                f"⚠️ ポイントが足りません。必要: {self.cost}NP / 所持: {user_data['points']}NP",
+                ephemeral=True
             )
             return
 
-        # 🔥 ポイント減算（Supabase必要ならadd_pointsも修正）
+        # ポイントの減算
         await add_points(self.supabase, user_id, -self.cost)
 
         if self.item_name == "名前変更権":
-            # 🔥 特別アイテムなら RenameModal を表示
+            # モーダルを表示する場合
             modal = RenameModal(interaction.user)
-            await interaction.followup.send("✏️ 名前変更モーダルを開きます！")
-            await interaction.followup.send_modal(modal)
+            await interaction.followup.send("名前変更モーダルを開きます。", ephemeral=True)
+            await interaction.user.send_modal(modal)
         else:
-            # 🔥 それ以外は購入完了メッセージ
+            # 購入後のUIの更新
             await interaction.followup.send(
-                f"✅ {self.item_name} を購入しました！ 残り: {user_data['points'] - self.cost}NP"
+                content=f"✅ **{self.item_name}** を購入しました！ 残り: {user_data['points'] - self.cost}NP",
+                ephemeral=True,
+                view=None  # UI（ボタン）の表示がない場合はview=Noneを指定
             )
+
 
 
 
