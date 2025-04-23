@@ -27,34 +27,43 @@ class ShopButton(Button):
         user_id = str(interaction.user.id)
         display_name = interaction.user.display_name
 
-        # ポイント処理のためにユーザー確認
-        await interaction.response.defer(ephemeral=True)
+        try:
+            # ポイント処理のためにユーザー確認
+            await interaction.response.defer(ephemeral=True)
 
-        # DBでユーザーがなければ追加
-        user_data = await add_user_if_not_exists(self.supabase, user_id, display_name)
+            # DBでユーザーがなければ追加
+            user_data = await add_user_if_not_exists(self.supabase, user_id, display_name)
 
-        if user_data["points"] < self.cost:
-            await interaction.followup.send(
-                f"⚠️ ポイントが足りません。必要: {self.cost}NP / 所持: {user_data['points']}NP",
-                ephemeral=True
-            )
-            return
+            if user_data["points"] < self.cost:
+                await interaction.followup.send(
+                    f"⚠️ ポイントが足りません。必要: {self.cost}NP / 所持: {user_data['points']}NP",
+                    ephemeral=True
+                )
+                return
 
-        # ポイントの減算
-        await add_points(self.supabase, user_id, -self.cost)
+            # ポイントの減算
+            await add_points(self.supabase, user_id, -self.cost)
 
-        if self.item_name == "名前変更権":
-            # モーダルを表示する場合
-            modal = RenameModal(interaction.user)
-            await interaction.followup.send("名前変更モーダルを開きます。", ephemeral=True)
-            await interaction.user.send_modal(modal)
-        else:
-            # 購入後のUIの更新
-            await interaction.followup.send(
-                content=f"✅ **{self.item_name}** を購入しました！ 残り: {user_data['points'] - self.cost}NP",
-                ephemeral=True,
-                view=None  # UI（ボタン）の表示がない場合はview=Noneを指定
-            )
+            if self.item_name == "名前変更権":
+                # モーダルを表示する場合
+                modal = RenameModal(interaction.user)
+                await interaction.followup.send("名前変更モーダルを開きます。", ephemeral=True)
+                await interaction.response.send_modal(modal)
+            else:
+                # 購入後のUIの更新
+                await interaction.followup.send(
+                    content=f"✅ **{self.item_name}** を購入しました！ 残り: {user_data['points'] - self.cost}NP",
+                    ephemeral=True,
+                    view=None  # UI（ボタン）の表示がない場合はview=Noneを指定
+                )
+        except discord.errors.NotFound:
+            # インタラクションが無効になっている場合のエラーハンドリング
+            await interaction.followup.send("⚠️ インタラクションが無効になりました。再試行してください。", ephemeral=True)
+        except Exception as e:
+            # 他のエラーが発生した場合
+            await interaction.followup.send(f"⚠️ エラーが発生しました: {str(e)}", ephemeral=True)
+
+
 
 
 
