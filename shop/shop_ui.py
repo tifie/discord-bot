@@ -17,13 +17,13 @@ CATEGORY_DESCRIPTIONS = {
 }
 
 class ShopButton(Button):
-   　　  def __init__(self, item_name, cost, supabase):
+   　　 def __init__(self, item_name, cost, supabase):  
        　　 super().__init__(label=f"{item_name} - {cost}NP", style=discord.ButtonStyle.primary)
         　　self.item_name = item_name
         　　self.cost = cost
         　　self.supabase = supabase  # ⭐ ここ！！
 
-    　　async def callback(self, interaction: discord.Interaction):
+    　　 async def callback(self, interaction: discord.Interaction):
         　　user_id = str(interaction.user.id)
         　　user_data = await add_user_if_not_exists(self.supabase, user_id, interaction.user.display_name)
         　# ↑ ここも self.supabase を使う！
