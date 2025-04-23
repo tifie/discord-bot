@@ -98,10 +98,14 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
 
     message_author_id = str(message.author.id)
 
+    print("userは存在すか")
+    await add_user_if_not_exists(message_author_id, message.author.display_name)
+
+    print("すでにリアクションをしたメッセージか")
     if await has_already_reacted(discord_id, message_id):
         return
 
-    await add_user_if_not_exists(message_author_id, message.author.display_name)
+    print("リアクションしたメッセージを記録")
     await log_reaction(discord_id, message_id)
 
     await add_points(message_author_id, 10)
