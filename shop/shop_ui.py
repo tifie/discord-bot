@@ -4,6 +4,8 @@ from discord.ui import View, Button, Modal, TextInput
 from shop.shop_items import SHOP_ITEMS
 from shop.shop_handler import ShopButton
 from db import add_user_if_not_exists, mark_name_change_purchased
+from db import add_points
+
 
 CATEGORY_DESCRIPTIONS = {
     "プロフ変更系": {
@@ -12,13 +14,6 @@ CATEGORY_DESCRIPTIONS = {
         "ネームカラー変更権": "名前のカラーを変更できる"
     },
     # 他のカテゴリも続く
-}
-
-SHOP_ITEMS = {
-    "名前変更権": {"cost": 100},
-    "名前変更指定権": {"cost": 200},
-    "ネームカラー変更権": {"cost": 150},
-    # 他も追加
 }
 
 class ShopButton(Button):
