@@ -16,7 +16,7 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 async def add_user_if_not_exists(supabase, discord_id: str, discord_name: str):
     # ユーザーがすでに存在するか確認
-    user_id = get_user_by(discord_id)
+    user_id = await get_user_by(discord_id)
 
     # エラーが発生した場合のチェック（APIResponseオブジェクトの確認）
     if not user_id:
@@ -34,7 +34,7 @@ async def add_user_if_not_exists(supabase, discord_id: str, discord_name: str):
                 "point": 0  # ポイント初期化
             })
 
-            return get_user_by(discord_id)  # 新規ユーザーの情報を返す
+            return await get_user_by(discord_id)  # 新規ユーザーの情報を返す
         else:
             raise Exception("ユーザーの追加に失敗しました。")
 
