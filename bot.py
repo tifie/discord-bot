@@ -1,4 +1,5 @@
 import os
+from logging import info
 import discord
 from discord.ext import commands
 from discord import app_commands
@@ -98,18 +99,18 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
 
     message_author_id = str(message.author.id)
 
-    print("userは存在すか")
+    info("userは存在すか")
     await add_user_if_not_exists(message_author_id, message.author.display_name)
 
-    print("すでにリアクションをしたメッセージか")
+    info("すでにリアクションをしたメッセージか")
     if await has_already_reacted(discord_id, message_id):
         return
 
-    print("リアクションしたメッセージを記録")
+    info("リアクションしたメッセージを記録")
     await log_reaction(discord_id, message_id)
 
     await add_points(message_author_id, 10)
-    print(f"{message.author.display_name} にポイント追加！（{emoji}）")
+    info(f"{message.author.display_name} にポイント追加！（{emoji}）")
 
 @bot.tree.command(name="shop_profile", description="プロフィール系ショップを表示します")
 @app_commands.checks.has_permissions(administrator=True)
