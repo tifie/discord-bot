@@ -142,7 +142,7 @@ async def transfer_points(from_discord_id: str, to_discord_id: str, points: int)
 async def has_already_reacted(discord_id: str, message_id: str):
     user_id = await get_user_by(discord_id)
 
-    res = supabase.table("reaction_log").select("id")\
+    res = supabase.table("reaction_log").select("user_id")\
         .eq("user_id", user_id).eq("message_id", message_id).execute()  # await外す
 
     return bool(res.data)
@@ -150,7 +150,7 @@ async def has_already_reacted(discord_id: str, message_id: str):
 async def log_reaction(discord_id: str, message_id: str):
     # すでにリアクションが記録されていないかチェック
     user_id = await get_user_by(discord_id)
-    if not await has_already_reacted(user_id, message_id):
+    if not await has_already_reacted(discord_id, message_id):
         supabase.table("reaction_log").insert({
             "user_id": user_id,
             "message_id": message_id,
@@ -158,15 +158,15 @@ async def log_reaction(discord_id: str, message_id: str):
 
 # ========== ユーザー設定関連 ==========
 
-async def get_user_data(user_id: str):
-    res = supabase.table("users").select("*").eq("id", user_id).single().execute()  # await外す
+async def get_user_data(discord_id: str):
+    res = supabase.table("users").select("*").eq("discord_id", discord_id).single().execute()  # await外す
     return res.data
 
 async def save_user_data(user_data: dict):
     supabase.table("users").update(user_data).eq("id", user_data["id"]).execute()  # await外す
 
-async def mark_name_change_purchased(user_id: str):
-    user_data = await get_user_data(user_id)  # ここはawaitが必要
+async def mark_name_change_purchased(discord_id: str):
+    user_data = await get_user_data(discord_id)  # ここはawaitが必要
     # if user_data.get("has_renamed"):
     #     return "⚠️ すでに名前を変更しています。一度きりの変更です。"
     # user_data["has_renamed"] = True
