@@ -117,7 +117,7 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
 @app_commands.checks.has_permissions(administrator=True)
 async def shop_profile(interaction: discord.Interaction):
     from shop.shop_ui import send_shop_category
-    await send_shop_category(interaction, "プロフ変更系")
+    await send_shop_category(interaction, "プロフ変更系", supabase)
 
 class RenameModal(Modal, title="名前を変更します！"):
     def __init__(self, user: discord.Member):
