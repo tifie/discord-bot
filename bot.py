@@ -3,19 +3,13 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 from discord.ui import Modal, TextInput
-from db import add_user_if_not_exists, add_points, get_total_points, transfer_points, has_already_reacted, log_reaction, get_user_by, get_point_by
-from supabase import create_client, Client
+from db import add_user_if_not_exists, add_points, get_total_points, add_points_to_user, transfer_points, has_already_reacted, log_reaction, get_user_by, get_point_by
 from dotenv import load_dotenv
 
 from shop.shop_ui import ShopButton
 
 # 環境変数を読み込み
 load_dotenv()
-
-# Supabaseクライアント作成
-url = os.getenv("SUPABASE_URL")
-key = os.getenv("SUPABASE_KEY")
-supabase: Client = create_client(url, key)
 
 class MyBot(commands.Bot):
     async def setup_hook(self):
@@ -49,12 +43,12 @@ async def mypoints(interaction: discord.Interaction):
     print(f"mypoints コマンドが呼ばれました。discord_id: {interaction.user.id}, discord_name: {interaction.user.display_name}")
 
     try:
-        await add_user_if_not_exists(supabase, str(interaction.user.id), interaction.user.display_name)
+        await add_user_if_not_exists(str(interaction.user.id), interaction.user.display_name)
     except Exception as e:
         print(f"add_user_if_not_exists 呼び出し時にエラー: {e}")
 
     # 修正: get_total_points を supabase とユーザーIDで呼び出し
-    points = await get_total_points(supabase, str(interaction.user.id))  # 修正箇所
+    points = await get_total_points(str(interaction.user.id))  # 修正箇所
     await interaction.followup.send(f"現在のnp： **{points}NP** ", ephemeral=True)
 
 
@@ -71,7 +65,7 @@ async def givepoints(interaction: discord.Interaction, user: discord.Member, amo
     receiver_id = str(user.id)
 
     # ✅ supabase は不要
-    success, message = await transfer_points(supabase, sender_id, receiver_id, amount)
+    success, message = await transfer_points(sender_id, receiver_id, amount)
     await interaction.followup.send(message, ephemeral=True)
 
     try:
@@ -104,20 +98,20 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
 
     message_author_id = str(message.author.id)
 
-    if await has_already_reacted(supabase, discord_id, message_id):
+    if await has_already_reacted(discord_id, message_id):
         return
 
-    await log_reaction(supabase, discord_id, message_id)
+    await log_reaction(discord_id, message_id)
 
-    await add_user_if_not_exists(supabase, message_author_id, message.author.display_name)
-    await add_points(supabase, message_author_id, 10)
+    await add_user_if_not_exists(message_author_id, message.author.display_name)
+    await add_points(message_author_id, 10)
     print(f"{message.author.display_name} にポイント追加！（{emoji}）")
 
 @bot.tree.command(name="shop_profile", description="プロフィール系ショップを表示します")
 @app_commands.checks.has_permissions(administrator=True)
 async def shop_profile(interaction: discord.Interaction):
     from shop.shop_ui import send_shop_category
-    await send_shop_category(interaction, "プロフ変更系", supabase)
+    await send_shop_category(interaction, "プロフ変更系")
 
 class RenameModal(Modal, title="名前を変更します！"):
     def __init__(self, user: discord.Member):
@@ -151,18 +145,7 @@ async def add_points(ctx, points: int):
     else:
         await ctx.send("⚠️ ポイントの付与に失敗しました。")
 
-async def add_points_to_user(discord_id: str, points: int):
-    # ここにSupabaseやデータベースの処理を記述
-    # 例:
-    user_id = await get_user_by(discord_id)
-    user_point = await get_point_by(user_id)
 
-    if user_point:
-        current_points = user_point
-        new_points = current_points + points
-        await supabase.table("point").update({"point": new_points}).eq("user_id", user_id).execute()
-        return True
-    return False
 
 if __name__ == "__main__":
     token = os.getenv("DISCORD_TOKEN")
