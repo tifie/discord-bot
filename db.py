@@ -81,6 +81,21 @@ async def get_total_points(discord_id: str):
     total = sum(entry["points"] for entry in res.data)
     print(f"[get_total_points] 合計ポイント: {total}")
     return total
+    # ユーザー情報を取得し、total_points と points の整合性を取る
+async def fix_user_points(supabase, discord_id):
+    res = await supabase.table("users").select("id", "points", "total_points").eq("discord_id", discord_id).execute()
+    user_data = res.data[0] if res.data else None
+    
+    if user_data:
+        # points と total_points の整合性が取れていない場合、total_points を更新
+        if user_data["points"] != user_data.get("total_points", 0):
+            updated_user = await supabase.table("users").update({"total_points": user_data["points"]}).eq("discord_id", discord_id).execute()
+            return updated_user
+        else:
+            return None  # 整合性が取れている場合
+    else:
+        return None  # ユーザーが見つからない場合
+
 
 # ========== ポイント関連 ==========
 
@@ -139,6 +154,21 @@ async def mark_name_change_purchased(user_id: str):
     user_data["has_renamed"] = True
     await save_user_data(user_data)  # ここもawaitが必要
     return "✅ 名前変更が購入されました。"
+    # ユーザー情報を取得し、total_points と points の整合性を取る
+async def fix_user_points(supabase, discord_id):
+    res = await supabase.table("users").select("id", "points", "total_points").eq("discord_id", discord_id).execute()
+    user_data = res.data[0] if res.data else None
+    
+    if user_data:
+        # points と total_points の整合性が取れていない場合、total_points を更新
+        if user_data["points"] != user_data.get("total_points", 0):
+            updated_user = await supabase.table("users").update({"total_points": user_data["points"]}).eq("discord_id", discord_id).execute()
+            return updated_user
+        else:
+            return None  # 整合性が取れている場合
+    else:
+        return None  # ユーザーが見つからない場合
+
 
 # ========== テスト用 ==========
 
