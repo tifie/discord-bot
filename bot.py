@@ -49,7 +49,7 @@ async def mypoints(interaction: discord.Interaction):
     print(f"mypoints コマンドが呼ばれました。discord_id: {interaction.user.id}, discord_name: {interaction.user.display_name}")
 
     try:
-        await add_user_if_not_exists(supabase, str(interaction.user.id), interaction.user.display_name)
+        await add_user_if_not_exists(str(interaction.user.id), interaction.user.display_name)
     except Exception as e:
         print(f"add_user_if_not_exists 呼び出し時にエラー: {e}")
 
@@ -104,13 +104,13 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
 
     message_author_id = str(message.author.id)
 
-    if await has_already_reacted(supabase, discord_id, message_id):
+    if await has_already_reacted(discord_id, message_id):
         return
 
-    await log_reaction(supabase, discord_id, message_id)
+    await log_reaction(discord_id, message_id)
 
-    await add_user_if_not_exists(supabase, message_author_id, message.author.display_name)
-    await add_points(supabase, message_author_id, 10)
+    await add_user_if_not_exists(message_author_id, message.author.display_name)
+    await add_points(message_author_id, 10)
     print(f"{message.author.display_name} にポイント追加！（{emoji}）")
 
 @bot.tree.command(name="shop_profile", description="プロフィール系ショップを表示します")

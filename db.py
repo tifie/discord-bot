@@ -1,20 +1,10 @@
 import os
 import asyncio
-from dotenv import load_dotenv
-from supabase import create_client, Client
-
-# 環境変数を読み込む
-load_dotenv()
-
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-
-# Supabaseクライアント作成
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+from bot import supabase
 
 # ========== 基本関数 ==========
 
-async def add_user_if_not_exists(supabase, discord_id: str, discord_name: str):
+async def add_user_if_not_exists(discord_id: str, discord_name: str):
     # ユーザーがすでに存在するか確認
     user_id = await get_user_by(discord_id)
 
@@ -167,7 +157,7 @@ async def mark_name_change_purchased(user_id: str):
     await save_user_data(user_data)  # ここもawaitが必要
     return "✅ 名前変更が購入されました。"
     # ユーザー情報を取得し、total_points と points の整合性を取る
-async def fix_user_points(supabase, discord_id):
+async def fix_user_points(discord_id):
     res = await supabase.table("users").select("id", "points", "total_points").eq("discord_id", discord_id).execute()
     user_data = res.data[0] if res.data else None
 
