@@ -16,22 +16,22 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 async def add_user_if_not_exists(discord_id: str, discord_name: str):
     # ユーザーがすでに存在するか確認
-    res = supabase.table("users").select("id").eq("discord_id", discord_id).execute()
+    res = supabase.table("users").select("id").eq("discord_id", discord_id).execute()  # await外す
     
     # ユーザーが存在すればその情報を返す
     if res.data:
         return res.data[0]
     
     # ユーザーが存在しない場合、新規ユーザーを追加
-    inserted_user = await supabase.table("users").insert({
+    inserted_user = supabase.table("users").insert({
         "discord_id": discord_id,
         "discord_name": discord_name
-    }).execute()
+    }).execute()  # await外す
 
     return inserted_user.data[0]
 
 async def get_user_id(discord_id: str):
-    res = await supabase.table("users").select("id").eq("discord_id", discord_id).execute()
+    res = supabase.table("users").select("id").eq("discord_id", discord_id).execute()  # await外す
     
     # ユーザーIDが見つかればそのIDを返す
     if res.data:
@@ -47,14 +47,15 @@ async def add_points(discord_id: str, points: int, reason: str = "リアクシ�
         return
     
     # ポイントログを挿入
-    await supabase.table("points_log").insert({
+    supabase.table("points_log").insert({
         "user_id": user_id,
         "points": points,
         "reason": reason
-    }).execute()
+    }).execute()  # await外す
+
 async def get_total_points(discord_id: str):
     print(f"[get_total_points] ユーザーID取得開始: {discord_id}")
-    user_id = await get_user_id(discord_id)
+    user_id = await get_user_id(discord_id)  # ここはawaitが必要
     print(f"[get_total_points] ユーザーID取得結果: {user_id}")
 
     if not user_id:
@@ -63,7 +64,7 @@ async def get_total_points(discord_id: str):
 
     print(f"[get_total_points] ポイント情報取得を開始: user_id={user_id}")
     try:
-        res = await supabase.table("points_log").select("points").eq("user_id", user_id).execute()
+        res = supabase.table("points_log").select("points").eq("user_id", user_id).execute()  # await外す
         print(f"[get_total_points] ポイント情報取得完了: データ件数 = {len(res.data)}")
     except Exception as e:
         print(f"❌ [get_total_points] エラー発生: {e}")
@@ -73,9 +74,6 @@ async def get_total_points(discord_id: str):
     print(f"[get_total_points] 合計ポイント: {total}")
     return total
 
-    total = sum(entry["points"] for entry in res.data)
-    print(f"[get_total_points] 合計ポイント: {total}")
-    return total
 # ========== ポイント関連 ==========
 
 async def transfer_points(from_discord_id: str, to_discord_id: str, points: int):
@@ -86,25 +84,25 @@ async def transfer_points(from_discord_id: str, to_discord_id: str, points: int)
         return False, "送信者または受信者が見つかりません。"
 
     # 送信者のポイントの合計を取得
-    res = await supabase.table("points_log").select("points").eq("user_id", from_user_id).execute()
+    res = supabase.table("points_log").select("points").eq("user_id", from_user_id).execute()  # await外す
     total = sum(entry["points"] for entry in res.data)
     
     if total < points:
         return False, "ポイントが不足しています。"
 
     # ポイントを送信
-    await supabase.table("points_log").insert([
+    supabase.table("points_log").insert([
         {"user_id": from_user_id, "points": -points, "reason": "ポイント送信"},
         {"user_id": to_user_id, "points": points, "reason": "ポイント受け取り"}
-    ]).execute()
+    ]).execute()  # await外す
 
     return True, f"{points}ポイントを送信しました！"
 
 # ========== リアクションログ関連 ==========
 
 async def has_already_reacted(user_id: str, message_id: str, emoji: str):
-    res = await supabase.table("reaction_logs").select("id")\
-        .eq("user_id", user_id).eq("message_id", message_id).eq("emoji", emoji).execute()
+    res = supabase.table("reaction_logs").select("id")\
+        .eq("user_id", user_id).eq("message_id", message_id).eq("emoji", emoji).execute()  # await外す
     
     return bool(res.data)
 
@@ -115,30 +113,30 @@ async def log_reaction(user_id: str, message_id: str, emoji: str):
             "user_id": user_id,
             "message_id": message_id,
             "emoji": emoji
-        }).execute()
+        }).execute()  # await外す
 
 # ========== ユーザー設定関連 ==========
 
 async def get_user_data(user_id: str):
-    res = await supabase.table("users").select("*").eq("id", user_id).single().execute()
+    res = supabase.table("users").select("*").eq("id", user_id).single().execute()  # await外す
     return res.data
 
 async def save_user_data(user_data: dict):
-    await supabase.table("users").update(user_data).eq("id", user_data["id"]).execute()
+    supabase.table("users").update(user_data).eq("id", user_data["id"]).execute()  # await外す
 
 async def mark_name_change_purchased(user_id: str):
-    user_data =  await get_user_data(user_id)
+    user_data = await get_user_data(user_id)  # ここはawaitが必要
     if user_data.get("has_renamed"):
         return "⚠️ すでに名前を変更しています。一度きりの変更です。"
     user_data["has_renamed"] = True
-    await save_user_data(user_data)
+    await save_user_data(user_data)  # ここもawaitが必要
     return "✅ 名前変更が購入されました。"
 
 # ========== テスト用 ==========
 
 async def main():
     await add_user_if_not_exists("test_discord_id", "TestUser")
-    points = get_total_points("test_discord_id")
+    points = await get_total_points("test_discord_id")
     print(f"現在のポイント: {points}")
 
 if __name__ == "__main__":
