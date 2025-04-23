@@ -26,7 +26,7 @@ class ShopButton(Button):
         print(f"ボタン押された！user={interaction.user.name}")
 
         user_id = str(interaction.user.id)  # ← ここも4スペース
-        user_data = await add_user_if_not_exists(user_id, interaction.user.display_name)
+        user_data = await add_user_if_not_exists(supabase, user_id, interaction.user.display_name)
 
         if user_data["points"] < self.cost:
             await interaction.response.send_message(f"⚠️ ポイントが足りません。{self.cost}NPが必要です。", ephemeral=True)
