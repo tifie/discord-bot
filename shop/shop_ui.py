@@ -3,7 +3,7 @@ from discord.ext import commands
 from discord.ui import View, Button, Modal, TextInput
 from shop.shop_items import SHOP_ITEMS
 from shop.shop_handler import ShopButton
-from db import add_user_if_not_exists, mark_name_change_purchased
+from db import add_user_if_not_exists, mark_name_change_purchased, get_point_by
 from db import add_points
 
 
@@ -32,17 +32,20 @@ class ShopButton(Button):
             await interaction.response.defer(ephemeral=True)
 
             # DBでユーザーがなければ追加
-            user_data = await add_user_if_not_exists(self.supabase, user_id, display_name)
+            user_id = await add_user_if_not_exists(self.supabase, user_id, display_name)
 
-            if user_data["points"] < self.cost:
+            user_point = await get_point_by(user_id)
+
+            if user_point < self.cost:
                 await interaction.followup.send(
-                    f"⚠️ ポイントが足りません。必要: {self.cost}NP / 所持: {user_data['points']}NP",
+                    f"⚠️ ポイントが足りません。必要: {self.cost}NP / 所持: {user_point}NP",
                     ephemeral=True
                 )
                 return
 
             # ポイントの減算
             await add_points(self.supabase, user_id, -self.cost)
+            user_point = await get_point_by(user_id)
 
             if self.item_name == "名前変更権":
                 # モーダルを表示する場合
@@ -52,7 +55,7 @@ class ShopButton(Button):
             else:
                 # 購入後のUIの更新
                 await interaction.followup.send(
-                    content=f"✅ **{self.item_name}** を購入しました！ 残り: {user_data['points'] - self.cost}NP",
+                    content=f"✅ **{self.item_name}** を購入しました！ 残り: {user_point}NP",
                     ephemeral=True,
                     view=None  # UI（ボタン）の表示がない場合はview=Noneを指定
                 )
@@ -102,12 +105,13 @@ class RenameModal(Modal, title="名前を変更します！"):
         self.add_item(self.new_name)
 
     async def on_submit(self, interaction: discord.Interaction):
-        user_data = await add_user_if_not_exists(str(self.user.id), self.user.display_name)
-        
+        user_id = await add_user_if_not_exists(str(self.user.id), self.user.display_name)
+
+        ### --- TODO --- ###
         # 名前変更済みかどうかを確認
-        if user_data["has_renamed"]:
-            await interaction.response.send_message("⚠️ すでに名前を変更しています。名前変更は一度だけです。", ephemeral=True)
-            return
+        # if user_data["has_renamed"]:
+        #     await interaction.response.send_message("⚠️ すでに名前を変更しています。名前変更は一度だけです。", ephemeral=True)
+        #     return
 
         try:
             # 名前変更処理

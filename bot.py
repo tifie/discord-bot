@@ -3,7 +3,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 from discord.ui import Modal, TextInput
-from db import add_user_if_not_exists, add_points, get_total_points, transfer_points, has_already_reacted, log_reaction
+from db import add_user_if_not_exists, add_points, get_total_points, transfer_points, has_already_reacted, log_reaction, get_user_by, get_point_by
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
@@ -47,7 +47,7 @@ async def mypoints(interaction: discord.Interaction):
 
     # ログを追加
     print(f"mypoints コマンドが呼ばれました。discord_id: {interaction.user.id}, discord_name: {interaction.user.display_name}")
-    
+
     try:
         await add_user_if_not_exists(supabase, str(interaction.user.id), interaction.user.display_name)
     except Exception as e:
@@ -92,7 +92,7 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     if not user:
         return
 
-    user_id = str(user.id)
+    discord_id = str(user.id)
     message_id = str(payload.message_id)
     emoji = str(payload.emoji)
 
@@ -104,10 +104,10 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
 
     message_author_id = str(message.author.id)
 
-    if await has_already_reacted(supabase, user_id, message_id, emoji):
+    if await has_already_reacted(supabase, discord_id, message_id):
         return
 
-    await log_reaction(supabase, user_id, message_id, emoji)
+    await log_reaction(supabase, discord_id, message_id)
 
     await add_user_if_not_exists(supabase, message_author_id, message.author.display_name)
     await add_points(supabase, message_author_id, 10)
@@ -139,6 +139,7 @@ class RenameModal(Modal, title="名前を変更します！"):
             )
         except discord.Forbidden:
             await interaction.response.send_message("⚠️ ニックネームを変更する権限がないみたい…", ephemeral=True)
+
 @bot.command()
 async def add_points(ctx, points: int):
     """自分に指定したポイントを加算するコマンド"""
@@ -150,14 +151,16 @@ async def add_points(ctx, points: int):
     else:
         await ctx.send("⚠️ ポイントの付与に失敗しました。")
 
-async def add_points_to_user(user_id: str, points: int):
+async def add_points_to_user(discord_id: str, points: int):
     # ここにSupabaseやデータベースの処理を記述
     # 例:
-    res = await supabase.table("users").select("points").eq("discord_id", user_id).execute()
-    if res.data:
-        current_points = res.data[0]["points"]
+    user_id = await get_user_by(discord_id)
+    user_point = await get_point_by(user_id)
+
+    if user_point:
+        current_points = user_point
         new_points = current_points + points
-        await supabase.table("users").update({"points": new_points}).eq("discord_id", user_id).execute()
+        await supabase.table("point").update({"point": new_points}).eq("user_id", user_id).execute()
         return True
     return False
 
