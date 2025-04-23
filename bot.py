@@ -101,9 +101,9 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     if await has_already_reacted(discord_id, message_id):
         return
 
+    await add_user_if_not_exists(message_author_id, message.author.display_name)
     await log_reaction(discord_id, message_id)
 
-    await add_user_if_not_exists(message_author_id, message.author.display_name)
     await add_points(message_author_id, 10)
     print(f"{message.author.display_name} にポイント追加！（{emoji}）")
 
