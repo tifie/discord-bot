@@ -23,22 +23,20 @@ class ShopButton(Button):
         self.cost = cost
 
     async def callback(self, interaction: discord.Interaction):
-        user_id = str(interaction.user.id)
-        user_data = await add_user_if_not_exists(user_id, interaction.user.display_name)
+   　　 user_id = str(interaction.user.id)
+    　　user_data = await add_user_if_not_exists(user_id, interaction.user.display_name)
 
-        if user_data["points"] < self.cost:
-            await interaction.response.send_message(f"⚠️ ポイントが足りません。{self.cost}NPが必要です。", ephemeral=True)
-            return
+    if user_data["points"] < self.cost:
+        await interaction.response.send_message(f"⚠️ ポイントが足りません。{self.cost}NPが必要です。", ephemeral=True)
+        return
 
-        await add_points(user_id, -self.cost)
+    await add_points(user_id, -self.cost)
 
-        if self.item_name == "名前変更権":
-            await interaction.response.defer(ephemeral=True)  # ⭐ 最初に一旦 defer
-            modal = RenameModal(interaction.user)
-            await interaction.followup.send_modal(modal)      # ⭐ その後 followup でモーダル送信
-        else:
-            await interaction.response.send_message(f"✅ {self.item_name} を購入しました！", ephemeral=True)
-
+    if self.item_name == "名前変更権":
+        modal = RenameModal(interaction.user)
+        await interaction.response.send_modal(modal)  # ⭐こっちだけでOK！
+    else:
+        await interaction.response.send_message(f"✅ {self.item_name} を購入しました！", ephemeral=True)
 
 
 class CategoryShopView(View):
