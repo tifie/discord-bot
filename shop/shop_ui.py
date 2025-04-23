@@ -17,28 +17,43 @@ CATEGORY_DESCRIPTIONS = {
 }
 
 class ShopButton(Button):
-    def __init__(self, item_name, cost, supabase):  
+    def __init__(self, item_name: str, cost: int, supabase):
         super().__init__(label=f"{item_name} - {cost}NP", style=discord.ButtonStyle.primary)
         self.item_name = item_name
         self.cost = cost
-        self.supabase = supabase  # ⭐ ここ！！
+        self.supabase = supabase  # ⭐ Supabaseちゃんと持つ！
 
     async def callback(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
-        user_data = await add_user_if_not_exists(self.supabase, user_id, interaction.user.display_name)
-        # ↑ ここも self.supabase を使う！
+        display_name = interaction.user.display_name
+
+        # 🔥 押した瞬間に defer（タイムアウト防止）
+        await interaction.response.defer(ephemeral=True)
+
+        # 🔥 Supabase渡してユーザーデータ取得
+        user_data = await add_user_if_not_exists(self.supabase, user_id, display_name)
 
         if user_data["points"] < self.cost:
-            await interaction.response.send_message(f"⚠️ ポイントが足りません。{self.cost}NPが必要です。", ephemeral=True)
+            # 🔥 足りなかったら followup.sendでエラーメッセージ
+            await interaction.followup.send(
+                f"⚠️ ポイントが足りません。必要: {self.cost}NP / 所持: {user_data['points']}NP"
+            )
             return
 
-        await add_points(user_id, -self.cost)
+        # 🔥 ポイント減算（Supabase必要ならadd_pointsも修正）
+        await add_points(self.supabase, user_id, -self.cost)
 
         if self.item_name == "名前変更権":
+            # 🔥 特別アイテムなら RenameModal を表示
             modal = RenameModal(interaction.user)
-            await interaction.response.send_modal(modal)
+            await interaction.followup.send("✏️ 名前変更モーダルを開きます！")
+            await interaction.followup.send_modal(modal)
         else:
-            await interaction.response.send_message(f"✅ {self.item_name} を購入しました！", ephemeral=True)
+            # 🔥 それ以外は購入完了メッセージ
+            await interaction.followup.send(
+                f"✅ {self.item_name} を購入しました！ 残り: {user_data['points'] - self.cost}NP"
+            )
+
 
 
 
