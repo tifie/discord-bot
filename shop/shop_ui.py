@@ -17,7 +17,7 @@ CATEGORY_DESCRIPTIONS = {
 }
 
 class ShopButton(Button):
-   　　 def __init__(self, item_name, cost, supabase):
+   　　  def __init__(self, item_name, cost, supabase):
        　　 super().__init__(label=f"{item_name} - {cost}NP", style=discord.ButtonStyle.primary)
         　　self.item_name = item_name
         　　self.cost = cost
