@@ -46,6 +46,7 @@ class ShopButton(Button):
 class CategoryShopView(View):
     def __init__(self, category_name, supabase):
         super().__init__(timeout=None)
+        self.supabase = supabase
         items = CATEGORY_DESCRIPTIONS.get(category_name, {})
         for item_name in items:
             cost = SHOP_ITEMS[item_name]["cost"]
