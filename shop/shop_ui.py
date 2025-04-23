@@ -4,7 +4,7 @@ from discord.ui import View, Button, Modal, TextInput
 from shop.shop_items import SHOP_ITEMS
 from shop.shop_handler import ShopButton
 from db import add_user_if_not_exists, mark_name_change_purchased, get_point_by
-from db import add_points
+from db import add_points, supabase
 
 
 CATEGORY_DESCRIPTIONS = {
@@ -82,7 +82,7 @@ class CategoryShopView(View):
             cost = SHOP_ITEMS[item_name]["cost"]
             self.add_item(ShopButton(item_name, cost, self.supabase))
 
-async def send_shop_category(interaction: discord.Interaction, category_name: str, supabase):
+async def send_shop_category(interaction: discord.Interaction, category_name: str):
     items = CATEGORY_DESCRIPTIONS.get(category_name, {})
     description = "\n".join(f"・{name} → {desc}" for name, desc in items.items())
     embed = discord.Embed(
