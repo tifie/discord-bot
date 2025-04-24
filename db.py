@@ -17,25 +17,24 @@ async def add_user_if_not_exists(discord_id: str, discord_name: str):
 
     # エラーが発生した場合のチェック（APIResponseオブジェクトの確認）
     if not user_id:
-        # ユーザーが存在しない場合、新規登録
-        supabase.table("users").insert({
-            "discord_id": discord_id,
-            "discord_name": discord_name,
-        }).execute()
+        try:
+            res = supabase.table("users").insert({
+                "discord_id": discord_id,
+                "discord_name": discord_name,
+            }).execute()
+            user_id = res.data[0]["id"]
 
-        user_id = await get_user_by(discord_id)
-
-
-        # 挿入後のデータが返される
-        if user_id:
             supabase.table("points").insert({
-                "user_id": user_id,
-                "point": 0  # ポイント初期化
-            })
+                    "user_id": user_id,
+                    "point": 0  # ポイント初期化
+            }).execute()
+        except Exception as e:
+            raise Exception(f"ユーザーの追加に失敗しました。{e}")
+        # ユーザーが存在しない場合、新規登録
 
-            return user_id  # 新規ユーザーの情報を返す
-        else:
-            raise Exception("ユーザーの追加に失敗しました。")
+
+        return user_id  # 新規ユーザーの情報を返す
+
 
     return user_id  # ユーザー情報を返す
 
@@ -48,7 +47,7 @@ async def add_points_to_user(discord_id: str, points: int):
     if user_point:
         current_points = user_point
         new_points = current_points + points
-        await supabase.table("point").update({"point": new_points}).eq("user_id", user_id).execute()
+        await supabase.table("points").update({"point": new_points}).eq("user_id", user_id).execute()
         return True
     return False
 
@@ -57,20 +56,20 @@ async def get_user_by(discord_id: str):
     res = supabase.table("users").select("id").eq("discord_id", discord_id).execute()  # await外す
 
     # ユーザーIDが見つかればそのIDを返す
-    if res["data"]:
-        return res["data"][0]["id"]
+    if res.data:
+        return res.data[0]["id"]
 
     return None
 
 async def get_point_by(user_id: any):
-    res = supabase.table("point").select("user_id", user_id).execute()
+    res = supabase.table("points").select("point").eq("user_id", user_id).execute()
 
-    if res["data"]:
-        return res["data"][0]["point"]
+    if res.data:
+        return res.data[0]["point"]
 
     return None
 
-async def add_points(discord_id: str, points: int, reason: str = "リアクションポイント"):
+async def update_points(discord_id: str, points: int, reason: str = "リアクションポイント"):
     user_id = await get_user_by(discord_id)
 
     # ユーザーが見つからない場合は何もしない
@@ -80,14 +79,14 @@ async def add_points(discord_id: str, points: int, reason: str = "リアクシ�
     user_point = await get_point_by(user_id)
 
     # ポイント更新
-    supabase.table("point").update({
+    supabase.table("points").update({
         "point": user_point+points
     }).eq("user_id", user_id).execute()
 
     # ポイントログを挿入
     supabase.table("points_log").insert({
         "user_id": user_id,
-        "points": points,
+        "point": points,
         "reason": reason
     }).execute()  # await外す
 
@@ -149,7 +148,7 @@ async def has_already_reacted(discord_id: str, message_id: str):
     res = supabase.table("reaction_log").select("user_id")\
         .eq("user_id", user_id).eq("message_id", message_id).execute()  # await外す
 
-    return bool(res["data"])
+    return bool(res.data)
 
 async def log_reaction(discord_id: str, message_id: str):
     # すでにリアクションが記録されていないかチェック
@@ -164,7 +163,7 @@ async def log_reaction(discord_id: str, message_id: str):
 
 async def get_user_data(discord_id: str):
     res = supabase.table("users").select("*").eq("discord_id", discord_id).single().execute()  # await外す
-    return res["data"]
+    return res.data
 
 async def save_user_data(user_data: dict):
     supabase.table("users").update(user_data).eq("id", user_data["id"]).execute()  # await外す
@@ -180,7 +179,7 @@ async def mark_name_change_purchased(discord_id: str):
 
 async def fix_user_points(discord_id: str):
     res = await supabase.table("users").select("id", "points", "total_points").eq("discord_id", discord_id).execute()
-    user_data = res["data"][0] if res["data"] else None
+    user_data = res.data[0] if res.data else None
 
     if user_data:
         # points と total_points の整合性が取れていない場合、total_points を更新

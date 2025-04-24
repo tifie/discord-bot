@@ -4,7 +4,7 @@ from discord.ui import View, Button, Modal, TextInput
 from shop.shop_items import SHOP_ITEMS
 from shop.shop_handler import ShopButton
 from db import add_user_if_not_exists, mark_name_change_purchased, get_point_by
-from db import add_points, supabase
+from db import update_points, supabase
 
 
 CATEGORY_DESCRIPTIONS = {
@@ -44,7 +44,7 @@ class ShopButton(Button):
                 return
 
             # ポイントの減算
-            await add_points(self.supabase, user_id, -self.cost)
+            await update_points(self.supabase, user_id, -self.cost)
             user_point = await get_point_by(user_id)
 
             if self.item_name == "名前変更権":
