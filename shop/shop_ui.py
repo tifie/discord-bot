@@ -32,7 +32,7 @@ class ShopButton(Button):
             await interaction.response.defer(ephemeral=True)
 
             # DBでユーザーがなければ追加
-            user_id = await add_user_if_not_exists(self.supabase, user_id, display_name)
+            user_id = await add_user_if_not_exists(user_id, display_name)
 
             user_point = await get_point_by(user_id)
 
@@ -44,14 +44,16 @@ class ShopButton(Button):
                 return
 
             # ポイントの減算
-            await update_points(self.supabase, user_id, -self.cost)
+            await update_points(user_id, -self.cost)
             user_point = await get_point_by(user_id)
 
             if self.item_name == "名前変更権":
-                # モーダルを表示する場合
+                # モーダルを表示
                 modal = RenameModal(interaction.user)
                 await interaction.followup.send("名前変更モーダルを開きます。", ephemeral=True)
-                await interaction.response.send_modal(modal)
+                await interaction.edit_original_response(view=None)  # ボタンを非表示にする
+                await interaction.message.edit(view=None)  # 元のメッセージのボタンも非表示にする
+                await interaction.message.reply(view=modal, ephemeral=True)
             else:
                 # 購入後のUIの更新
                 await interaction.followup.send(
