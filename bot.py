@@ -4,7 +4,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 from discord.ui import Modal, TextInput
-from db import add_user_if_not_exists, add_points, get_total_points, add_points_to_user, transfer_points, has_already_reacted, log_reaction, get_user_by, get_point_by
+from db import add_user_if_not_exists, update_points, get_total_points, add_points_to_user, transfer_points, has_already_reacted, log_reaction, get_user_by, get_point_by
 from dotenv import load_dotenv
 
 from shop.shop_ui import ShopButton
@@ -28,12 +28,12 @@ bot = MyBot(command_prefix="!", intents=intents)
 
 # 対象チャンネルID
 TARGET_CHANNEL_IDS = [
-    1363171100359659620,
-    1360987317229322410,
-    1362883049104343211,
-    1363192621698384112,
-    1363170014349496571,
-    1363192707207397546
+    1363171100359659620, # ネタ
+    1360987317229322410, # スプラトゥーンクリップ
+    1364622931954499664, # 近況-写真
+    1362883049104343211, # 自慢-写真
+    1363192621698384112, # 動物-写真
+    1363170014349496571, # 飲食-写真
 ]
 
 @bot.tree.command(name="mypoints", description="自分のnpを確認します")
@@ -64,6 +64,9 @@ async def givepoints(interaction: discord.Interaction, user: discord.Member, amo
 
     sender_id = str(interaction.user.id)
     receiver_id = str(user.id)
+
+    await add_user_if_not_exists(sender_id, interaction.user.display_name)
+    await add_user_if_not_exists(receiver_id, user.display_name)
 
     # ✅ supabase は不要
     success, message = await transfer_points(sender_id, receiver_id, amount)
@@ -99,18 +102,20 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
 
     message_author_id = str(message.author.id)
 
-    info("userは存在すか")
+    print("userは存在すか")
+    await add_user_if_not_exists(discord_id, user.display_name)
     await add_user_if_not_exists(message_author_id, message.author.display_name)
 
-    info("すでにリアクションをしたメッセージか")
+    print("すでにリアクションをしたメッセージか")
     if await has_already_reacted(discord_id, message_id):
         return
 
-    info("リアクションしたメッセージを記録")
-    await log_reaction(discord_id, message_id)
+    print("リアクションしたメッセージを記録")
+    await log_reaction(message_author_id, message_id)
 
-    await add_points(message_author_id, 10)
-    info(f"{message.author.display_name} にポイント追加！（{emoji}）")
+    print("ポイントを付与")
+    await update_points(message_author_id, 10)
+    print(f"{message.author.display_name} にポイント追加！（{emoji}）")
 
 @bot.tree.command(name="shop_profile", description="プロフィール系ショップを表示します")
 @app_commands.checks.has_permissions(administrator=True)
@@ -142,8 +147,8 @@ class RenameModal(Modal, title="名前を変更します！"):
 @bot.command()
 async def add_points(ctx: commands.Context, points: int):
     """自分に指定したポイントを加算するコマンド"""
-    await add_user_if_not_exists(ctx.author.id, ctx.author.display_name)
     user_id = str(ctx.author.id)  # コマンドを実行したユーザーのIDを取得
+    await add_user_if_not_exists(user_id, ctx.author.display_name)
     success = await add_points_to_user(user_id, points)  # add_points_to_user関数でDBに反映
 
     if success:
