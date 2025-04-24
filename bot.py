@@ -142,6 +142,7 @@ class RenameModal(Modal, title="名前を変更します！"):
 @bot.command()
 async def add_points(ctx: commands.Context, points: int):
     """自分に指定したポイントを加算するコマンド"""
+    await add_user_if_not_exists(ctx.author.id, ctx.author.display_name)
     user_id = str(ctx.author.id)  # コマンドを実行したユーザーのIDを取得
     success = await add_points_to_user(user_id, points)  # add_points_to_user関数でDBに反映
 
