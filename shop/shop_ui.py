@@ -51,9 +51,7 @@ class ShopButton(Button):
                 # モーダルを表示
                 modal = RenameModal(interaction.user)
                 await interaction.followup.send("名前変更モーダルを開きます。", ephemeral=True)
-                await interaction.edit_original_response(view=None)  # ボタンを非表示にする
-                await interaction.message.edit(view=None)  # 元のメッセージのボタンも非表示にする
-                await interaction.message.reply(view=modal, ephemeral=True)
+                await interaction.message.reply(view=modal)
             else:
                 # 購入後のUIの更新
                 await interaction.followup.send(
