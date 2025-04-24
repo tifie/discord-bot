@@ -57,16 +57,16 @@ async def get_user_by(discord_id: str):
     res = supabase.table("users").select("id").eq("discord_id", discord_id).execute()  # await外す
 
     # ユーザーIDが見つかればそのIDを返す
-    if res.data:
-        return res.data[0]["id"]
+    if res["data"]:
+        return res["data"][0]["id"]
 
     return None
 
 async def get_point_by(user_id: any):
     res = supabase.table("point").select("user_id", user_id).execute()
 
-    if res.data:
-        return res.data[0]["point"]
+    if res["data"]:
+        return res["data"][0]["point"]
 
     return None
 
@@ -149,7 +149,7 @@ async def has_already_reacted(discord_id: str, message_id: str):
     res = supabase.table("reaction_log").select("user_id")\
         .eq("user_id", user_id).eq("message_id", message_id).execute()  # await外す
 
-    return bool(res.data)
+    return bool(res["data"])
 
 async def log_reaction(discord_id: str, message_id: str):
     # すでにリアクションが記録されていないかチェック
@@ -164,7 +164,7 @@ async def log_reaction(discord_id: str, message_id: str):
 
 async def get_user_data(discord_id: str):
     res = supabase.table("users").select("*").eq("discord_id", discord_id).single().execute()  # await外す
-    return res.data
+    return res["data"]
 
 async def save_user_data(user_data: dict):
     supabase.table("users").update(user_data).eq("id", user_data["id"]).execute()  # await外す
@@ -177,9 +177,10 @@ async def mark_name_change_purchased(discord_id: str):
     await save_user_data(user_data)  # ここもawaitが必要
     return "✅ 名前変更が購入されました。"
     # ユーザー情報を取得し、total_points と points の整合性を取る
-async def fix_user_points(discord_id):
+
+async def fix_user_points(discord_id: str):
     res = await supabase.table("users").select("id", "points", "total_points").eq("discord_id", discord_id).execute()
-    user_data = res.data[0] if res.data else None
+    user_data = res["data"][0] if res["data"] else None
 
     if user_data:
         # points と total_points の整合性が取れていない場合、total_points を更新
