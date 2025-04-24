@@ -18,20 +18,22 @@ async def add_user_if_not_exists(discord_id: str, discord_name: str):
     # エラーが発生した場合のチェック（APIResponseオブジェクトの確認）
     if not user_id:
         # ユーザーが存在しない場合、新規登録
-        inserted_user = supabase.table("users").insert({
+        supabase.table("users").insert({
             "discord_id": discord_id,
             "discord_name": discord_name,
         }).execute()
 
+        user_id = await get_user_by(discord_id)
+
 
         # 挿入後のデータが返される
-        if inserted_user.data:
+        if user_id:
             supabase.table("points").insert({
-                "user_id": inserted_user.data[0]["id"],
+                "user_id": user_id,
                 "point": 0  # ポイント初期化
             })
 
-            return await get_user_by(discord_id)  # 新規ユーザーの情報を返す
+            return user_id  # 新規ユーザーの情報を返す
         else:
             raise Exception("ユーザーの追加に失敗しました。")
 
