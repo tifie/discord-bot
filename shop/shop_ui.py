@@ -28,16 +28,13 @@ class ShopButton(Button):
         display_name = interaction.user.display_name
 
         try:
-            # ポイント処理のためにユーザー確認
-            await interaction.response.defer(ephemeral=True)
-
             # DBでユーザーがなければ追加
             user_id = await add_user_if_not_exists(user_id, display_name)
 
             user_point = await get_point_by(user_id)
 
             if user_point < self.cost:
-                await interaction.followup.send(
+                await interaction.response.send_message(
                     f"⚠️ ポイントが足りません。必要: {self.cost}NP / 所持: {user_point}NP",
                     ephemeral=True
                 )
@@ -50,21 +47,19 @@ class ShopButton(Button):
             if self.item_name == "名前変更権":
                 # モーダルを表示
                 modal = RenameModal(interaction.user)
-                await interaction.followup.send("名前変更モーダルを開きます。", ephemeral=True)
                 await interaction.response.send_modal(modal)
             else:
                 # 購入後のUIの更新
-                await interaction.followup.send(
+                await interaction.response.send_message(
                     content=f"✅ **{self.item_name}** を購入しました！ 残り: {user_point}NP",
-                    ephemeral=True,
-                    view=None  # UI（ボタン）の表示がない場合はview=Noneを指定
+                    ephemeral=True
                 )
         except discord.errors.NotFound:
             # インタラクションが無効になっている場合のエラーハンドリング
-            await interaction.followup.send("⚠️ インタラクションが無効になりました。再試行してください。", ephemeral=True)
+            await interaction.response.send_message("⚠️ インタラクションが無効になりました。再試行してください。", ephemeral=True)
         except Exception as e:
             # 他のエラーが発生した場合
-            await interaction.followup.send(f"⚠️ エラーが発生しました: {str(e)}", ephemeral=True)
+            await interaction.response.send_message(f"⚠️ エラーが発生しました: {str(e)}", ephemeral=True)
 
 
 
