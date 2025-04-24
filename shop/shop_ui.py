@@ -51,7 +51,7 @@ class ShopButton(Button):
                 # モーダルを表示
                 modal = RenameModal(interaction.user)
                 await interaction.followup.send("名前変更モーダルを開きます。", ephemeral=True)
-                await interaction.message.reply(view=modal)
+                await interaction.response.send_modal(modal)
             else:
                 # 購入後のUIの更新
                 await interaction.followup.send(
