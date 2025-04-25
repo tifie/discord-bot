@@ -21,7 +21,7 @@ class ShopButton(Button):
         super().__init__(label=f"{item_name} - {cost}NP", style=discord.ButtonStyle.primary)
         self.item_name = item_name
         self.cost = cost
-        self.supabase = supabase  # Supabaseインスタンス
+        self.supabase = supabase
 
     async def callback(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
@@ -41,7 +41,7 @@ class ShopButton(Button):
                 return
 
             # ポイントの減算
-            await update_points(user_id, -self.cost)
+            await update_points(user_id, -self.cost, f"{self.item_name}の購入")
             user_point = await get_point_by(user_id)
 
             if self.item_name == "名前変更権":
@@ -67,10 +67,8 @@ class ShopButton(Button):
                     ephemeral=True
                 )
         except discord.errors.NotFound:
-            # インタラクションが無効になっている場合のエラーハンドリング
             await interaction.response.send_message("⚠️ インタラクションが無効になりました。再試行してください。", ephemeral=True)
         except Exception as e:
-            # 他のエラーが発生した場合
             await interaction.response.send_message(f"⚠️ エラーが発生しました: {str(e)}", ephemeral=True)
 
 
@@ -234,6 +232,14 @@ class ColorSelectModal(Modal, title="名前の色を変更します！"):
                     reason=f"Custom color for {self.user.display_name}",
                     permissions=discord.Permissions.none()  # 権限を最小限に
                 )
+                
+                # ロールの位置を上に設定
+                # サーバーのロール一覧を取得
+                roles = guild.roles
+                # 一番上のロールの位置を取得
+                top_role = roles[0]  # @everyoneは除外される
+                # 新しいロールの位置を設定
+                await color_role.edit(position=top_role.position)
             
             # ユーザーの既存のカラーロールを削除
             for role in self.user.roles:
