@@ -12,29 +12,34 @@ supabase: Client = create_client(url, key)
 # ========== 基本関数 ==========
 
 async def add_user_if_not_exists(discord_id: str, discord_name: str):
+    print(f"[add_user_if_not_exists] 開始: discord_id={discord_id}, discord_name={discord_name}")
+    
     # ユーザーがすでに存在するか確認
     user_id = await get_user_by(discord_id)
+    print(f"[add_user_if_not_exists] 既存ユーザー確認: {user_id}")
 
     # エラーが発生した場合のチェック（APIResponseオブジェクトの確認）
     if not user_id:
         try:
-            res = supabase.table("users").insert({
+            print("[add_user_if_not_exists] 新規ユーザーを作成します")
+            res = await supabase.table("users").insert({
                 "discord_id": discord_id,
                 "discord_name": discord_name,
             }).execute()
             user_id = res.data[0]["id"]
+            print(f"[add_user_if_not_exists] 新規ユーザー作成: {user_id}")
 
-            supabase.table("points").insert({
-                    "user_id": user_id,
-                    "point": 0  # ポイント初期化
+            # ポイントテーブルに初期レコードを作成
+            await supabase.table("points").insert({
+                "user_id": user_id,
+                "point": 0  # ポイント初期化
             }).execute()
+            print(f"[add_user_if_not_exists] ポイント初期化: {user_id}")
+
+            return user_id  # 新規ユーザーの情報を返す
         except Exception as e:
+            print(f"[add_user_if_not_exists] エラー発生: {str(e)}")
             raise Exception(f"ユーザーの追加に失敗しました。{e}")
-        # ユーザーが存在しない場合、新規登録
-
-
-        return user_id  # 新規ユーザーの情報を返す
-
 
     return user_id  # ユーザー情報を返す
 
@@ -54,13 +59,22 @@ async def add_points_to_user(discord_id: str, points: int):
 
 
 async def get_user_by(discord_id: str):
-    res = supabase.table("users").select("id").eq("discord_id", discord_id).execute()  # await外す
+    print(f"[get_user_by] 開始: discord_id={discord_id}")
+    try:
+        res = await supabase.table("users").select("id").eq("discord_id", discord_id).execute()
+        print(f"[get_user_by] 結果: {res.data}")
 
-    # ユーザーIDが見つかればそのIDを返す
-    if res.data:
-        return res.data[0]["id"]
+        # ユーザーIDが見つかればそのIDを返す
+        if res.data and len(res.data) > 0:
+            user_id = res.data[0]["id"]
+            print(f"[get_user_by] ユーザーID取得: {user_id}")
+            return user_id
 
-    return None
+        print("[get_user_by] ユーザーが見つかりません")
+        return None
+    except Exception as e:
+        print(f"[get_user_by] エラー発生: {str(e)}")
+        return None
 
 async def get_point_by(user_id: str):
     print(f"[get_point_by] 開始: user_id={user_id}")
@@ -69,7 +83,11 @@ async def get_point_by(user_id: str):
         print(f"[get_point_by] 結果: {res.data}")
 
         if res.data and len(res.data) > 0:
-            return res.data[0]["point"]
+            point = res.data[0]["point"]
+            print(f"[get_point_by] ポイント取得: {point}")
+            return point
+
+        print("[get_point_by] ポイントが見つかりません")
         return 0  # ポイントが見つからない場合は0を返す（テーブルの初期値に合わせる）
     except Exception as e:
         print(f"[get_point_by] エラー発生: {str(e)}")
