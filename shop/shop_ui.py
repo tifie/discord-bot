@@ -24,17 +24,20 @@ class ShopButton(Button):
         self.supabase = supabase
 
     async def callback(self, interaction: discord.Interaction):
-        user_id = str(interaction.user.id)
-        display_name = interaction.user.display_name
-
         try:
+            # インタラクションの応答を延期
+            await interaction.response.defer(ephemeral=True)
+            
+            user_id = str(interaction.user.id)
+            display_name = interaction.user.display_name
+
             # DBでユーザーがなければ追加
             user_id = await add_user_if_not_exists(user_id, display_name)
 
             user_point = await get_point_by(user_id)
 
             if user_point < self.cost:
-                await interaction.response.send_message(
+                await interaction.followup.send(
                     f"⚠️ ポイントが足りません。必要: {self.cost}NP / 所持: {user_point}NP",
                     ephemeral=True
                 )
@@ -43,7 +46,7 @@ class ShopButton(Button):
             # ポイントの減算
             success = await update_points(user_id, -self.cost, f"{self.item_name}の購入")
             if not success:
-                await interaction.response.send_message(
+                await interaction.followup.send(
                     "⚠️ ポイントの更新に失敗しました。",
                     ephemeral=True
                 )
@@ -54,11 +57,13 @@ class ShopButton(Button):
             if self.item_name == "名前変更権":
                 # モーダルを表示
                 modal = RenameModal(interaction.user)
-                await interaction.response.send_modal(modal)
+                await interaction.followup.send("名前変更モーダルを開きます。", ephemeral=True)
+                await interaction.message.edit(view=None)  # ボタンを非表示にする
+                await interaction.message.reply(view=modal)
             elif self.item_name == "名前変更指定権":
                 # ユーザー選択ビューを表示
                 view = UserSelectView()
-                await interaction.response.send_message(
+                await interaction.followup.send(
                     "名前を変更するユーザーを選択してください：",
                     view=view,
                     ephemeral=True
@@ -66,17 +71,24 @@ class ShopButton(Button):
             elif self.item_name == "ネームカラー変更権":
                 # カラー選択モーダルを表示
                 modal = ColorSelectModal(interaction.user)
-                await interaction.response.send_modal(modal)
+                await interaction.followup.send("カラー選択モーダルを開きます。", ephemeral=True)
+                await interaction.message.edit(view=None)  # ボタンを非表示にする
+                await interaction.message.reply(view=modal)
             else:
                 # 購入後のUIの更新
-                await interaction.response.send_message(
+                await interaction.followup.send(
                     content=f"✅ **{self.item_name}** を購入しました！ 残り: {user_point}NP",
                     ephemeral=True
                 )
-        except discord.errors.NotFound:
-            await interaction.response.send_message("⚠️ インタラクションが無効になりました。再試行してください。", ephemeral=True)
         except Exception as e:
-            await interaction.response.send_message(f"⚠️ エラーが発生しました: {str(e)}", ephemeral=True)
+            try:
+                await interaction.followup.send(
+                    f"⚠️ エラーが発生しました: {str(e)}",
+                    ephemeral=True
+                )
+            except:
+                # インタラクションが完全に無効な場合は何もしない
+                pass
 
 
 
