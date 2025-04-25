@@ -48,6 +48,10 @@ class ShopButton(Button):
                 # モーダルを表示
                 modal = RenameModal(interaction.user)
                 await interaction.response.send_modal(modal)
+            elif self.item_name == "名前変更指定権":
+                # ユーザー選択モーダルを表示
+                modal = RenameOtherModal(interaction.user)
+                await interaction.response.send_modal(modal)
             else:
                 # 購入後のUIの更新
                 await interaction.response.send_message(
@@ -114,11 +118,59 @@ class RenameModal(Modal, title="名前を変更します！"):
                 await interaction.response.send_message(
                     f"✅ ニックネームを「{self.new_name.value}」に変更しました！", ephemeral=True
                 )
-            except discord.Forbidden:
-                await interaction.response.send_message("⚠️ Botにニックネームを変更する権限がないみたい…", ephemeral=True)
+            except discord.Forbidden as e:
+                error_message = str(e)
+                await interaction.response.send_message(
+                    f"⚠️ 権限エラーが発生しました：\n{error_message}\n\n"
+                    "以下の点を確認してください：\n"
+                    "1. Botに「メンバーのニックネームを管理」の権限があるか\n"
+                    "2. Botのロールが変更対象のユーザーより上位にあるか\n"
+                    "3. サーバー設定でBotの権限が正しく設定されているか",
+                    ephemeral=True
+                )
         except Exception as e:
             try:
                 await interaction.response.send_message(f"⚠️ エラーが発生しました: {str(e)}", ephemeral=True)
             except discord.errors.NotFound:
                 # インタラクションが無効な場合は、新しいメッセージを送信
+                await interaction.message.reply(f"⚠️ エラーが発生しました: {str(e)}", ephemeral=True)
+
+# 名前指定変更モーダル
+class RenameOtherModal(Modal, title="他のユーザーの名前を変更します！"):
+    def __init__(self, target_user: discord.Member):
+        super().__init__()
+        self.target_user = target_user
+        self.new_name = TextInput(
+            label="新しい名前",
+            placeholder="ここに新しいニックネームを入力してね",
+            max_length=32
+        )
+        self.add_item(self.new_name)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            try:
+                # Botの権限で名前を変更
+                guild = interaction.guild
+                member = await guild.fetch_member(self.target_user.id)
+                await member.edit(nick=self.new_name.value)
+                
+                await interaction.response.send_message(
+                    f"✅ {self.target_user.display_name} さんのニックネームを「{self.new_name.value}」に変更しました！", 
+                    ephemeral=True
+                )
+            except discord.Forbidden as e:
+                error_message = str(e)
+                await interaction.response.send_message(
+                    f"⚠️ 権限エラーが発生しました：\n{error_message}\n\n"
+                    "以下の点を確認してください：\n"
+                    "1. Botに「メンバーのニックネームを管理」の権限があるか\n"
+                    "2. Botのロールが変更対象のユーザーより上位にあるか\n"
+                    "3. サーバー設定でBotの権限が正しく設定されているか",
+                    ephemeral=True
+                )
+        except Exception as e:
+            try:
+                await interaction.response.send_message(f"⚠️ エラーが発生しました: {str(e)}", ephemeral=True)
+            except discord.errors.NotFound:
                 await interaction.message.reply(f"⚠️ エラーが発生しました: {str(e)}", ephemeral=True)
