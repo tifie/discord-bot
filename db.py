@@ -64,43 +64,42 @@ async def get_user_by(discord_id: str):
 
 async def get_point_by(user_id: str):
     print(f"[get_point_by] 開始: user_id={user_id}")
-    res = supabase.table("points").select("point").eq("user_id", str(user_id)).execute()  # user_idを文字列に変換
-    print(f"[get_point_by] 結果: {res.data}")
-
-    if res.data:
-        return res.data[0]["point"]
-
-    return None
-
-async def update_points(discord_id: str, points: int, reason: str = "リアクションポイント"):
-    print(f"[update_points] 開始: discord_id={discord_id}, points={points}, reason={reason}")
-    
-    user_id = await get_user_by(discord_id)
-    print(f"[update_points] ユーザーID取得: {user_id}")
-
-    # ユーザーが見つからない場合は何もしない
-    if not user_id:
-        print("[update_points] ユーザーが見つかりません")
-        return False
-
-    user_point = await get_point_by(user_id)
-    print(f"[update_points] 現在のポイント: {user_point}")
-
-    # ポイント更新
     try:
-        # ポイントを更新
-        new_points = user_point + points
+        res = await supabase.table("points").select("point").eq("user_id", str(user_id)).execute()
+        print(f"[get_point_by] 結果: {res.data}")
+
+        if res.data and len(res.data) > 0:
+            return res.data[0]["point"]
+        return 0  # ポイントが見つからない場合は0を返す
+    except Exception as e:
+        print(f"[get_point_by] エラー発生: {str(e)}")
+        return 0
+
+async def update_points(user_id: str, points: int, reason: str = "リアクションポイント"):
+    print(f"[update_points] 開始: user_id={user_id}, points={points}, reason={reason}")
+    
+    try:
+        # 現在のポイントを取得
+        current_points = await get_point_by(user_id)
+        print(f"[update_points] 現在のポイント: {current_points}")
+
+        if current_points is None:
+            print("[update_points] ユーザーのポイントが見つかりません")
+            return False
+
+        # 新しいポイントを計算
+        new_points = current_points + points
         print(f"[update_points] 新しいポイント: {new_points}")
-        
+
         # ポイントを更新
-        result = supabase.table("points").update({
+        result = await supabase.table("points").update({
             "point": new_points
-        }).eq("user_id", str(user_id)).execute()  # user_idを文字列に変換
+        }).eq("user_id", str(user_id)).execute()
         print(f"[update_points] ポイント更新結果: {result.data}")
 
         # ポイントログを挿入
-        log_result = supabase.table("points_log").insert({
-            "user_id": str(user_id),  # user_idを文字列に変換
+        log_result = await supabase.table("points_log").insert({
+            "user_id": str(user_id),
             "point": points,
             "reason": reason
         }).execute()
