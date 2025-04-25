@@ -49,9 +49,13 @@ class ShopButton(Button):
                 modal = RenameModal(interaction.user)
                 await interaction.response.send_modal(modal)
             elif self.item_name == "名前変更指定権":
-                # ユーザー選択モーダルを表示
-                modal = RenameOtherModal(interaction.user)
-                await interaction.response.send_modal(modal)
+                # ユーザー選択ビューを表示
+                view = UserSelectView()
+                await interaction.response.send_message(
+                    "名前を変更するユーザーを選択してください：",
+                    view=view,
+                    ephemeral=True
+                )
             else:
                 # 購入後のUIの更新
                 await interaction.response.send_message(
@@ -174,3 +178,20 @@ class RenameOtherModal(Modal, title="他のユーザーの名前を変更しま�
                 await interaction.response.send_message(f"⚠️ エラーが発生しました: {str(e)}", ephemeral=True)
             except discord.errors.NotFound:
                 await interaction.message.reply(f"⚠️ エラーが発生しました: {str(e)}", ephemeral=True)
+
+# ユーザー選択ビュー
+class UserSelectView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=60)
+        self.selected_user = None
+
+    @discord.ui.user_select(
+        placeholder="名前を変更するユーザーを選択してください",
+        min_values=1,
+        max_values=1
+    )
+    async def select_user(self, interaction: discord.Interaction, select: discord.ui.UserSelect):
+        self.selected_user = select.values[0]
+        modal = RenameOtherModal(self.selected_user)
+        await interaction.response.send_modal(modal)
+        self.stop()
