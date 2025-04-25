@@ -62,8 +62,10 @@ async def get_user_by(discord_id: str):
 
     return None
 
-async def get_point_by(user_id: any):
-    res = supabase.table("points").select("point").eq("user_id", user_id).execute()
+async def get_point_by(user_id: str):
+    print(f"[get_point_by] 開始: user_id={user_id}")
+    res = supabase.table("points").select("point").eq("user_id", str(user_id)).execute()  # user_idを文字列に変換
+    print(f"[get_point_by] 結果: {res.data}")
 
     if res.data:
         return res.data[0]["point"]
@@ -93,12 +95,12 @@ async def update_points(discord_id: str, points: int, reason: str = "リアク�
         # ポイントを更新
         result = supabase.table("points").update({
             "point": new_points
-        }).eq("user_id", user_id).execute()
+        }).eq("user_id", str(user_id)).execute()  # user_idを文字列に変換
         print(f"[update_points] ポイント更新結果: {result.data}")
 
         # ポイントログを挿入
         log_result = supabase.table("points_log").insert({
-            "user_id": user_id,
+            "user_id": str(user_id),  # user_idを文字列に変換
             "point": points,
             "reason": reason
         }).execute()
