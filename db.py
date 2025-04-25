@@ -70,10 +70,10 @@ async def get_point_by(user_id: str):
 
         if res.data and len(res.data) > 0:
             return res.data[0]["point"]
-        return 0  # ポイントが見つからない場合は0を返す
+        return None  # ポイントが見つからない場合はNoneを返す
     except Exception as e:
         print(f"[get_point_by] エラー発生: {str(e)}")
-        return 0
+        return None
 
 async def update_points(user_id: str, points: int, reason: str = "リアクションポイント"):
     print(f"[update_points] 開始: user_id={user_id}, points={points}, reason={reason}")
@@ -84,18 +84,24 @@ async def update_points(user_id: str, points: int, reason: str = "リアクシ�
         print(f"[update_points] 現在のポイント: {current_points}")
 
         if current_points is None:
-            print("[update_points] ユーザーのポイントが見つかりません")
-            return False
+            # ポイントレコードが存在しない場合は新規作成
+            print("[update_points] ポイントレコードが存在しないため、新規作成します")
+            result = await supabase.table("points").insert({
+                "user_id": str(user_id),
+                "point": points
+            }).execute()
+            print(f"[update_points] 新規ポイント作成結果: {result.data}")
+            current_points = points
+        else:
+            # 新しいポイントを計算
+            new_points = current_points + points
+            print(f"[update_points] 新しいポイント: {new_points}")
 
-        # 新しいポイントを計算
-        new_points = current_points + points
-        print(f"[update_points] 新しいポイント: {new_points}")
-
-        # ポイントを更新
-        result = await supabase.table("points").update({
-            "point": new_points
-        }).eq("user_id", str(user_id)).execute()
-        print(f"[update_points] ポイント更新結果: {result.data}")
+            # ポイントを更新
+            result = await supabase.table("points").update({
+                "point": new_points
+            }).eq("user_id", str(user_id)).execute()
+            print(f"[update_points] ポイント更新結果: {result.data}")
 
         # ポイントログを挿入
         log_result = await supabase.table("points_log").insert({
