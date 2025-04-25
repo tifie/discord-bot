@@ -38,6 +38,7 @@ async def add_user_if_not_exists(discord_id: str, discord_name: str):
 
     return user_id  # ユーザー情報を返す
 
+
 async def add_points_to_user(discord_id: str, points: int):
     # ここにSupabaseやデータベースの処理を記述
     # 例:
@@ -119,24 +120,24 @@ async def transfer_points(from_discord_id: str, to_discord_id: str, points: int)
     from_point = await get_point_by(from_user_id)
     to_point = await get_point_by(to_user_id)
 
-    if from_user_id < points:
+    if from_point < points:
         return False, "ポイントが不足しています。"
 
     # ポイントを徴収
     supabase.table("points").update({
         "point": from_point-points,
-    }).eq("user_id", from_user_id)
+    }).eq("user_id", from_user_id).execute()
 
     # ポイントを付与
     supabase.table("points").update({
         "point": to_point+points,
-    }).eq("user_id", to_user_id)
+    }).eq("user_id", to_user_id).execute()
 
     # ポイントを譲渡記録を残す
     supabase.table("points_log").insert([
         {"user_id": from_user_id, "points": -points, "reason": "ポイント送信"},
         {"user_id": to_user_id, "points": points, "reason": "ポイント受け取り"}
-    ]).execute()  # await外す
+    ]).execute()
 
     return True, f"{points}ポイントを送信しました！"
 
