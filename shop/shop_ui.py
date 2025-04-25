@@ -25,18 +25,24 @@ class ShopButton(Button):
 
     async def callback(self, interaction: discord.Interaction):
         try:
+            print(f"[ShopButton] コールバック開始: item_name={self.item_name}, cost={self.cost}")
+            
             # インタラクションの応答を延期
             await interaction.response.defer(ephemeral=True)
             
             user_id = str(interaction.user.id)
             display_name = interaction.user.display_name
+            print(f"[ShopButton] ユーザー情報: id={user_id}, name={display_name}")
 
             # DBでユーザーがなければ追加
             user_id = await add_user_if_not_exists(user_id, display_name)
+            print(f"[ShopButton] ユーザーID: {user_id}")
 
             user_point = await get_point_by(user_id)
+            print(f"[ShopButton] 現在のポイント: {user_point}")
 
             if user_point < self.cost:
+                print(f"[ShopButton] ポイント不足: 必要={self.cost}, 所持={user_point}")
                 await interaction.followup.send(
                     f"⚠️ ポイントが足りません。必要: {self.cost}NP / 所持: {user_point}NP",
                     ephemeral=True
@@ -44,8 +50,12 @@ class ShopButton(Button):
                 return
 
             # ポイントの減算
+            print(f"[ShopButton] ポイント減算開始: -{self.cost}")
             success = await update_points(user_id, -self.cost, f"{self.item_name}の購入")
+            print(f"[ShopButton] ポイント減算結果: {success}")
+
             if not success:
+                print("[ShopButton] ポイント更新失敗")
                 await interaction.followup.send(
                     "⚠️ ポイントの更新に失敗しました。",
                     ephemeral=True
@@ -53,6 +63,7 @@ class ShopButton(Button):
                 return
 
             user_point = await get_point_by(user_id)
+            print(f"[ShopButton] 更新後のポイント: {user_point}")
 
             if self.item_name == "名前変更権":
                 # モーダルを表示
@@ -81,6 +92,7 @@ class ShopButton(Button):
                     ephemeral=True
                 )
         except Exception as e:
+            print(f"[ShopButton] エラー発生: {str(e)}")
             try:
                 await interaction.followup.send(
                     f"⚠️ エラーが発生しました: {str(e)}",
