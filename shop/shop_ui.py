@@ -42,6 +42,11 @@ class ShopButton(Button):
             user_point = await get_point_by(user_id)
             print(f"[ShopButton] 現在のポイント: {user_point}")
 
+            # ポイントがNoneの場合は0として扱う
+            if user_point is None:
+                user_point = 0
+                print("[ShopButton] ポイントがNoneのため、0として扱います")
+
             # ポイントが足りているか確認
             if user_point < self.cost:
                 print(f"[ShopButton] ポイント不足: 必要={self.cost}, 所持={user_point}")
@@ -67,6 +72,11 @@ class ShopButton(Button):
             # 更新後のポイントを取得
             user_point = await get_point_by(user_id)
             print(f"[ShopButton] 更新後のポイント: {user_point}")
+
+            # ポイントがNoneの場合は0として扱う
+            if user_point is None:
+                user_point = 0
+                print("[ShopButton] 更新後のポイントがNoneのため、0として扱います")
 
             # 商品の処理を実行
             if self.item_name == "名前変更権":

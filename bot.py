@@ -50,6 +50,12 @@ async def mypoints(interaction: discord.Interaction):
 
     # 修正: get_total_points を supabase とユーザーIDで呼び出し
     points = await get_total_points(str(interaction.user.id))  # 修正箇所
+    
+    # ポイントがNoneの場合は0として扱う
+    if points is None:
+        points = 0
+        print("[mypoints] ポイントがNoneのため、0として扱います")
+    
     await interaction.followup.send(f"現在のnp： **{points}NP** ", ephemeral=True)
 
 
