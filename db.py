@@ -19,8 +19,17 @@ async def add_user_if_not_exists(discord_id: str, discord_name: str):
         user_id = await get_user_by(discord_id)
         print(f"[add_user_if_not_exists] 既存ユーザー確認: {user_id}")
 
-        if not user_id:
-            print("[add_user_if_not_exists] 新規ユーザーを作成します")
+        if user_id:
+            # 既存ユーザーの場合、名前を更新
+            print(f"[add_user_if_not_exists] 既存ユーザーの名前を更新: {discord_name}")
+            await supabase.table("users").update({
+                "discord_name": discord_name
+            }).eq("id", user_id).execute()
+            return user_id
+
+        # 新規ユーザーの場合
+        print("[add_user_if_not_exists] 新規ユーザーを作成します")
+        try:
             res = await supabase.table("users").insert({
                 "discord_id": discord_id,
                 "discord_name": discord_name,
@@ -34,23 +43,24 @@ async def add_user_if_not_exists(discord_id: str, discord_name: str):
                 "point": 0  # ポイント初期化
             }).execute()
             print(f"[add_user_if_not_exists] ポイント初期化: {user_id}")
-        else:
-            # 既存ユーザーの場合、名前を更新
-            print(f"[add_user_if_not_exists] 既存ユーザーの名前を更新: {discord_name}")
-            await supabase.table("users").update({
-                "discord_name": discord_name
-            }).eq("id", user_id).execute()
 
-        return user_id
+            return user_id
+        except Exception as insert_error:
+            print(f"[add_user_if_not_exists] 新規ユーザー作成エラー: {str(insert_error)}")
+            # 重複キーエラーの場合、既存ユーザーを再取得
+            if hasattr(insert_error, 'code') and insert_error.code == '23505':
+                print("[add_user_if_not_exists] 重複キーエラー: 既存ユーザーを再取得します")
+                user_id = await get_user_by(discord_id)
+                if user_id:
+                    # 名前を更新
+                    await supabase.table("users").update({
+                        "discord_name": discord_name
+                    }).eq("id", user_id).execute()
+                    return user_id
+            raise insert_error
+
     except Exception as e:
         print(f"[add_user_if_not_exists] エラー発生: {str(e)}")
-        # エラーの詳細を確認
-        if hasattr(e, 'code') and e.code == '23505':
-            # 重複キーエラーの場合、既存ユーザーを取得
-            print("[add_user_if_not_exists] 重複キーエラー: 既存ユーザーを取得します")
-            user_id = await get_user_by(discord_id)
-            if user_id:
-                return user_id
         raise Exception(f"ユーザーの追加に失敗しました。{e}")
 
 
