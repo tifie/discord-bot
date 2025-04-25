@@ -90,6 +90,7 @@ async def update_points(discord_id: str, points: int, reason: str = "リアク�
         new_points = user_point + points
         print(f"[update_points] 新しいポイント: {new_points}")
         
+        # ポイントを更新
         result = supabase.table("points").update({
             "point": new_points
         }).eq("user_id", user_id).execute()

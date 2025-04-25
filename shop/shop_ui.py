@@ -38,9 +38,11 @@ class ShopButton(Button):
             user_id = await add_user_if_not_exists(user_id, display_name)
             print(f"[ShopButton] ユーザーID: {user_id}")
 
+            # 現在のポイントを取得
             user_point = await get_point_by(user_id)
             print(f"[ShopButton] 現在のポイント: {user_point}")
 
+            # ポイントが足りているか確認
             if user_point < self.cost:
                 print(f"[ShopButton] ポイント不足: 必要={self.cost}, 所持={user_point}")
                 await interaction.followup.send(
@@ -49,22 +51,7 @@ class ShopButton(Button):
                 )
                 return
 
-            # ポイントの減算
-            print(f"[ShopButton] ポイント減算開始: -{self.cost}")
-            success = await update_points(user_id, -self.cost, f"{self.item_name}の購入")
-            print(f"[ShopButton] ポイント減算結果: {success}")
-
-            if not success:
-                print("[ShopButton] ポイント更新失敗")
-                await interaction.followup.send(
-                    "⚠️ ポイントの更新に失敗しました。",
-                    ephemeral=True
-                )
-                return
-
-            user_point = await get_point_by(user_id)
-            print(f"[ShopButton] 更新後のポイント: {user_point}")
-
+            # 商品の処理を実行
             if self.item_name == "名前変更権":
                 # モーダルを表示
                 modal = RenameModal(interaction.user)
@@ -86,11 +73,35 @@ class ShopButton(Button):
                 await interaction.message.edit(view=None)  # ボタンを非表示にする
                 await interaction.message.reply(view=modal)
             else:
-                # 購入後のUIの更新
+                # その他の商品の処理
                 await interaction.followup.send(
-                    content=f"✅ **{self.item_name}** を購入しました！ 残り: {user_point}NP",
+                    content=f"✅ **{self.item_name}** を購入しました！",
                     ephemeral=True
                 )
+
+            # ポイントを減算
+            print(f"[ShopButton] ポイント減算開始: -{self.cost}")
+            success = await update_points(user_id, -self.cost, f"{self.item_name}の購入")
+            print(f"[ShopButton] ポイント減算結果: {success}")
+
+            if not success:
+                print("[ShopButton] ポイント更新失敗")
+                await interaction.followup.send(
+                    "⚠️ ポイントの更新に失敗しました。",
+                    ephemeral=True
+                )
+                return
+
+            # 更新後のポイントを取得
+            user_point = await get_point_by(user_id)
+            print(f"[ShopButton] 更新後のポイント: {user_point}")
+
+            # 購入完了メッセージを表示
+            await interaction.followup.send(
+                content=f"✅ **{self.item_name}** の購入が完了しました！ 残り: {user_point}NP",
+                ephemeral=True
+            )
+
         except Exception as e:
             print(f"[ShopButton] エラー発生: {str(e)}")
             try:
