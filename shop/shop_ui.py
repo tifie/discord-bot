@@ -3,7 +3,7 @@ from discord.ext import commands
 from discord.ui import View, Button, Modal, TextInput
 from shop.shop_items import SHOP_ITEMS
 from shop.shop_handler import ShopButton
-from db import add_user_if_not_exists, mark_name_change_purchased, get_point_by
+from db import add_user_if_not_exists, mark_name_change_purchased, get_point_by, get_user_by, save_user_color
 from db import update_points, supabase
 
 
@@ -218,17 +218,33 @@ class ColorSelectModal(Modal, title="名前の色を変更します！"):
                 color_code = '#' + color_code
             
             # 16進数の色コードとして検証
-            int(color_code[1:], 16)
+            color_int = int(color_code[1:], 16)
             
-            # ユーザーのニックネームを取得
-            current_nick = self.user.display_name
+            # カスタムロールの作成または取得
+            guild = interaction.guild
+            role_name = f"{self.user.display_name} のネームカラー"
             
-            # 色付きのニックネームを作成
-            # Discordのマークダウンを使用して色を付ける
-            colored_nick = f"```ansi\n\u001b[38;5;{int(color_code[1:], 16)}m{current_nick}\u001b[0m\n```"
+            # 既存のロールを探す
+            color_role = discord.utils.get(guild.roles, name=role_name)
+            if not color_role:
+                # 新しいロールを作成（権限は最小限に）
+                color_role = await guild.create_role(
+                    name=role_name,
+                    color=discord.Color(color_int),
+                    reason=f"Custom color for {self.user.display_name}",
+                    permissions=discord.Permissions.none()  # 権限を最小限に
+                )
             
-            # ニックネームを更新
-            await self.user.edit(nick=colored_nick)
+            # ユーザーの既存のカラーロールを削除
+            for role in self.user.roles:
+                if role.name.endswith("のネームカラー"):
+                    await self.user.remove_roles(role)
+            
+            # 新しい色のロールを付与
+            await self.user.add_roles(color_role)
+            
+            # ロールの色を更新
+            await color_role.edit(color=discord.Color(color_int))
             
             await interaction.response.send_message(
                 f"✅ 名前の色を「{color_code}」に変更しました！",
@@ -241,9 +257,10 @@ class ColorSelectModal(Modal, title="名前の色を変更します！"):
             )
         except discord.Forbidden:
             await interaction.response.send_message(
-                "⚠️ Botにニックネームを変更する権限がありません。\n"
+                "⚠️ Botにロールを管理する権限がありません。\n"
                 "以下の権限が必要です：\n"
-                "・「メンバーのニックネームを管理」",
+                "・「ロールの管理」\n"
+                "・「ロールの作成」",
                 ephemeral=True
             )
         except Exception as e:

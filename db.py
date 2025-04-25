@@ -192,6 +192,41 @@ async def fix_user_points(discord_id: str):
     else:
         return None  # ユーザーが見つからない場合
 
+async def save_user_color(user_id: str, color_code: str):
+    """ユーザーの色情報を保存する"""
+    try:
+        # 色情報を保存
+        supabase.table("user_colors").upsert({
+            "user_id": user_id,
+            "color_code": color_code
+        }).execute()
+        return True
+    except Exception as e:
+        print(f"色情報の保存に失敗: {e}")
+        return False
+
+async def get_user_color(user_id: str):
+    """ユーザーの色情報を取得する"""
+    try:
+        res = supabase.table("user_colors").select("color_code").eq("user_id", user_id).execute()
+        if res.data:
+            return res.data[0]["color_code"]
+        return None
+    except Exception as e:
+        print(f"色情報の取得に失敗: {e}")
+        return None
+
+async def update_user_color(user_id: str, color_code: str):
+    """ユーザーの色情報を更新する"""
+    try:
+        # 色情報を更新
+        supabase.table("user_colors").update({
+            "color_code": color_code
+        }).eq("user_id", user_id).execute()
+        return True
+    except Exception as e:
+        print(f"色情報の更新に失敗: {e}")
+        return False
 
 # # ========== テスト用 ==========
 

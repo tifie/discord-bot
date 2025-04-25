@@ -123,7 +123,6 @@ async def shop_profile(interaction: discord.Interaction):
     from shop.shop_ui import send_shop_category
     await send_shop_category(interaction, "プロフ変更系")
 
-# エラーハンドリングを追加
 @shop_profile.error
 async def shop_profile_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
     if isinstance(error, app_commands.MissingPermissions):
