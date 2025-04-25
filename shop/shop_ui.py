@@ -204,7 +204,19 @@ class UserSelectView(discord.ui.View):
         super().__init__(timeout=60)
         self.selected_user = None
 
+        # ユーザー選択メニューを追加
+        self.add_item(discord.ui.UserSelect(
+            placeholder="名前を変更するユーザーを選択してください",
+            min_values=1,
+            max_values=1,
+            custom_id="user_select"
+        ))
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        return True
+
     @discord.ui.select(
+        type=discord.ComponentType.user_select,
         placeholder="名前を変更するユーザーを選択してください",
         min_values=1,
         max_values=1,
