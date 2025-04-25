@@ -51,34 +51,6 @@ class ShopButton(Button):
                 )
                 return
 
-            # 商品の処理を実行
-            if self.item_name == "名前変更権":
-                # モーダルを表示
-                modal = RenameModal(interaction.user)
-                await interaction.followup.send("名前変更モーダルを開きます。", ephemeral=True)
-                await interaction.message.edit(view=None)  # ボタンを非表示にする
-                await interaction.message.reply(view=modal)
-            elif self.item_name == "名前変更指定権":
-                # ユーザー選択ビューを表示
-                view = UserSelectView()
-                await interaction.followup.send(
-                    "名前を変更するユーザーを選択してください：",
-                    view=view,
-                    ephemeral=True
-                )
-            elif self.item_name == "ネームカラー変更権":
-                # カラー選択モーダルを表示
-                modal = ColorSelectModal(interaction.user)
-                await interaction.followup.send("カラー選択モーダルを開きます。", ephemeral=True)
-                await interaction.message.edit(view=None)  # ボタンを非表示にする
-                await interaction.message.reply(view=modal)
-            else:
-                # その他の商品の処理
-                await interaction.followup.send(
-                    content=f"✅ **{self.item_name}** を購入しました！",
-                    ephemeral=True
-                )
-
             # ポイントを減算
             print(f"[ShopButton] ポイント減算開始: -{self.cost}")
             success = await update_points(user_id, -self.cost, f"{self.item_name}の購入")
@@ -95,6 +67,30 @@ class ShopButton(Button):
             # 更新後のポイントを取得
             user_point = await get_point_by(user_id)
             print(f"[ShopButton] 更新後のポイント: {user_point}")
+
+            # 商品の処理を実行
+            if self.item_name == "名前変更権":
+                # モーダルを表示
+                modal = RenameModal(interaction.user)
+                await interaction.response.send_modal(modal)
+            elif self.item_name == "名前変更指定権":
+                # ユーザー選択ビューを表示
+                view = UserSelectView()
+                await interaction.followup.send(
+                    "名前を変更するユーザーを選択してください：",
+                    view=view,
+                    ephemeral=True
+                )
+            elif self.item_name == "ネームカラー変更権":
+                # カラー選択モーダルを表示
+                modal = ColorSelectModal(interaction.user)
+                await interaction.response.send_modal(modal)
+            else:
+                # その他の商品の処理
+                await interaction.followup.send(
+                    content=f"✅ **{self.item_name}** を購入しました！",
+                    ephemeral=True
+                )
 
             # 購入完了メッセージを表示
             await interaction.followup.send(
