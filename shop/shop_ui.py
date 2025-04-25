@@ -202,27 +202,21 @@ class RenameOtherModal(Modal, title="他のユーザーの名前を変更しま�
 class UserSelectView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=60)
-        self.selected_user = None
 
-        # ユーザー選択メニューを追加
-        self.add_item(discord.ui.UserSelect(
-            placeholder="名前を変更するユーザーを選択してください",
-            min_values=1,
-            max_values=1,
-            custom_id="user_select"
-        ))
+    class UserSelectMenu(discord.ui.UserSelect):
+        def __init__(self):
+            super().__init__(
+                placeholder="名前を変更するユーザーを選択してください",
+                min_values=1,
+                max_values=1
+            )
 
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        return True
+        async def callback(self, interaction: discord.Interaction):
+            selected_user = self.values[0]
+            modal = RenameOtherModal(selected_user)
+            await interaction.response.send_modal(modal)
+            self.view.stop()
 
-    @discord.ui.select(
-        placeholder="名前を変更するユーザーを選択してください",
-        min_values=1,
-        max_values=1,
-        custom_id="user_select"
-    )
-    async def select_user(self, interaction: discord.Interaction, select: discord.ui.Select):
-        self.selected_user = select.values[0]
-        modal = RenameOtherModal(self.selected_user)
-        await interaction.response.send_modal(modal)
-        self.stop()
+    def __init__(self):
+        super().__init__(timeout=60)
+        self.add_item(self.UserSelectMenu())
