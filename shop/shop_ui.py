@@ -189,7 +189,8 @@ class UserSelectView(discord.ui.View):
         self.add_item(discord.ui.UserSelect(
             placeholder="名前を変更するユーザーを選択してください",
             min_values=1,
-            max_values=1
+            max_values=1,
+            custom_id="user_select"
         ))
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
@@ -199,7 +200,8 @@ class UserSelectView(discord.ui.View):
         type=discord.ComponentType.user_select,
         placeholder="名前を変更するユーザーを選択してください",
         min_values=1,
-        max_values=1
+        max_values=1,
+        custom_id="user_select"
     )
     async def select_user(self, interaction: discord.Interaction, select: discord.ui.Select):
         self.selected_user = select.values[0]
