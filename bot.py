@@ -123,6 +123,20 @@ async def shop_profile(interaction: discord.Interaction):
     from shop.shop_ui import send_shop_category
     await send_shop_category(interaction, "プロフ変更系")
 
+# エラーハンドリングを追加
+@shop_profile.error
+async def shop_profile_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
+    if isinstance(error, app_commands.MissingPermissions):
+        await interaction.response.send_message(
+            "⚠️ このコマンドは管理者のみが使用できます。",
+            ephemeral=True
+        )
+    else:
+        await interaction.response.send_message(
+            f"⚠️ エラーが発生しました: {str(error)}",
+            ephemeral=True
+        )
+
 class RenameModal(Modal, title="名前を変更します！"):
     def __init__(self, user: discord.Member):
         super().__init__()
