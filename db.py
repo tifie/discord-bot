@@ -14,13 +14,12 @@ supabase: Client = create_client(url, key)
 async def add_user_if_not_exists(discord_id: str, discord_name: str):
     print(f"[add_user_if_not_exists] 開始: discord_id={discord_id}, discord_name={discord_name}")
     
-    # ユーザーがすでに存在するか確認
-    user_id = await get_user_by(discord_id)
-    print(f"[add_user_if_not_exists] 既存ユーザー確認: {user_id}")
+    try:
+        # ユーザーがすでに存在するか確認
+        user_id = await get_user_by(discord_id)
+        print(f"[add_user_if_not_exists] 既存ユーザー確認: {user_id}")
 
-    # エラーが発生した場合のチェック（APIResponseオブジェクトの確認）
-    if not user_id:
-        try:
+        if not user_id:
             print("[add_user_if_not_exists] 新規ユーザーを作成します")
             res = await supabase.table("users").insert({
                 "discord_id": discord_id,
@@ -35,13 +34,24 @@ async def add_user_if_not_exists(discord_id: str, discord_name: str):
                 "point": 0  # ポイント初期化
             }).execute()
             print(f"[add_user_if_not_exists] ポイント初期化: {user_id}")
+        else:
+            # 既存ユーザーの場合、名前を更新
+            print(f"[add_user_if_not_exists] 既存ユーザーの名前を更新: {discord_name}")
+            await supabase.table("users").update({
+                "discord_name": discord_name
+            }).eq("id", user_id).execute()
 
-            return user_id  # 新規ユーザーの情報を返す
-        except Exception as e:
-            print(f"[add_user_if_not_exists] エラー発生: {str(e)}")
-            raise Exception(f"ユーザーの追加に失敗しました。{e}")
-
-    return user_id  # ユーザー情報を返す
+        return user_id
+    except Exception as e:
+        print(f"[add_user_if_not_exists] エラー発生: {str(e)}")
+        # エラーの詳細を確認
+        if hasattr(e, 'code') and e.code == '23505':
+            # 重複キーエラーの場合、既存ユーザーを取得
+            print("[add_user_if_not_exists] 重複キーエラー: 既存ユーザーを取得します")
+            user_id = await get_user_by(discord_id)
+            if user_id:
+                return user_id
+        raise Exception(f"ユーザーの追加に失敗しました。{e}")
 
 
 async def add_points_to_user(discord_id: str, points: int):
