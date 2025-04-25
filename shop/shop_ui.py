@@ -86,14 +86,33 @@ class CategoryShopView(View):
             self.add_item(ShopButton(item_name, cost, self.supabase))
 
 async def send_shop_category(interaction: discord.Interaction, category_name: str):
-    items = CATEGORY_DESCRIPTIONS.get(category_name, {})
-    description = "\n".join(f"・{name} → {desc}" for name, desc in items.items())
-    embed = discord.Embed(
-        title=f"🛒 {category_name}",
-        description=description,
-        color=0x00ffcc
-    )
-    await interaction.response.send_message(embed=embed, view=CategoryShopView(category_name, supabase))
+    try:
+        items = CATEGORY_DESCRIPTIONS.get(category_name, {})
+        description = "\n".join(f"・{name} → {desc}" for name, desc in items.items())
+        embed = discord.Embed(
+            title=f"🛒 {category_name}",
+            description=description,
+            color=0x00ffcc
+        )
+        
+        # インタラクションの応答を送信
+        await interaction.response.send_message(
+            embed=embed,
+            view=CategoryShopView(category_name, supabase),
+            ephemeral=True
+        )
+    except discord.errors.NotFound:
+        # インタラクションが無効な場合は、新しいメッセージを送信
+        await interaction.followup.send(
+            "⚠️ インタラクションが無効になりました。もう一度コマンドを実行してください。",
+            ephemeral=True
+        )
+    except Exception as e:
+        # その他のエラーが発生した場合
+        await interaction.followup.send(
+            f"⚠️ エラーが発生しました: {str(e)}",
+            ephemeral=True
+        )
 
 # 名前変更モーダル
 class RenameModal(Modal, title="名前を変更します！"):
