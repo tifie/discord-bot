@@ -70,10 +70,10 @@ async def get_point_by(user_id: str):
 
         if res.data and len(res.data) > 0:
             return res.data[0]["point"]
-        return None  # ポイントが見つからない場合はNoneを返す
+        return 0  # ポイントが見つからない場合は0を返す（テーブルの初期値に合わせる）
     except Exception as e:
         print(f"[get_point_by] エラー発生: {str(e)}")
-        return None
+        return 0  # エラー時も0を返す
 
 async def update_points(user_id: str, points: int, reason: str = "リアクションポイント"):
     print(f"[update_points] 開始: user_id={user_id}, points={points}, reason={reason}")
@@ -83,25 +83,16 @@ async def update_points(user_id: str, points: int, reason: str = "リアクシ�
         current_points = await get_point_by(user_id)
         print(f"[update_points] 現在のポイント: {current_points}")
 
-        if current_points is None:
-            # ポイントレコードが存在しない場合は新規作成
-            print("[update_points] ポイントレコードが存在しないため、新規作成します")
-            result = await supabase.table("points").insert({
-                "user_id": str(user_id),
-                "point": points
-            }).execute()
-            print(f"[update_points] 新規ポイント作成結果: {result.data}")
-            current_points = points
-        else:
-            # 新しいポイントを計算
-            new_points = current_points + points
-            print(f"[update_points] 新しいポイント: {new_points}")
+        # 新しいポイントを計算
+        new_points = current_points + points
+        print(f"[update_points] 新しいポイント: {new_points}")
 
-            # ポイントを更新
-            result = await supabase.table("points").update({
-                "point": new_points
-            }).eq("user_id", str(user_id)).execute()
-            print(f"[update_points] ポイント更新結果: {result.data}")
+        # ポイントを更新
+        result = await supabase.table("points").upsert({
+            "user_id": str(user_id),
+            "point": new_points
+        }).execute()
+        print(f"[update_points] ポイント更新結果: {result.data}")
 
         # ポイントログを挿入
         log_result = await supabase.table("points_log").insert({
@@ -145,21 +136,29 @@ async def transfer_points(from_discord_id: str, to_discord_id: str, points: int)
     from_point = await get_point_by(from_user_id)
     to_point = await get_point_by(to_user_id)
 
+    # ポイントがNoneの場合は0として扱う
+    if from_point is None:
+        from_point = 0
+    if to_point is None:
+        to_point = 0
+
     if from_point < points:
         return False, "ポイントが不足しています。"
 
     # ポイントを徴収
-    supabase.table("points").update({
-        "point": from_point-points,
-    }).eq("user_id", from_user_id).execute()
+    await supabase.table("points").upsert({
+        "user_id": from_user_id,
+        "point": from_point - points
+    }).execute()
 
     # ポイントを付与
-    supabase.table("points").update({
-        "point": to_point+points,
-    }).eq("user_id", to_user_id).execute()
+    await supabase.table("points").upsert({
+        "user_id": to_user_id,
+        "point": to_point + points
+    }).execute()
 
     # ポイントを譲渡記録を残す
-    supabase.table("points_log").insert([
+    await supabase.table("points_log").insert([
         {"user_id": from_user_id, "points": -points, "reason": "ポイント送信"},
         {"user_id": to_user_id, "points": points, "reason": "ポイント受け取り"}
     ]).execute()
