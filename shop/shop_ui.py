@@ -26,10 +26,10 @@ class ShopButton(Button):
     async def callback(self, interaction: discord.Interaction):
         try:
             print(f"[ShopButton] コールバック開始: item_name={self.item_name}, cost={self.cost}")
-            
+
             # インタラクションの応答を延期
             await interaction.response.defer(ephemeral=True)
-            
+
             user_id = str(interaction.user.id)
             display_name = interaction.user.display_name
             print(f"[ShopButton] ユーザー情報: id={user_id}, name={display_name}")
@@ -144,7 +144,7 @@ async def send_shop_category(interaction: discord.Interaction, category_name: st
             description=description,
             color=0x00ffcc
         )
-        
+
         # インタラクションの応答を送信
         await interaction.response.send_message(
             embed=embed,
@@ -185,7 +185,7 @@ class RenameModal(Modal, title="名前を変更します！"):
                 guild = interaction.guild
                 member = await guild.fetch_member(self.user.id)
                 await member.edit(nick=self.new_name.value)
-                
+
                 # 名前変更後、データベースに変更を反映
                 await mark_name_change_purchased(self.user.id)
                 await interaction.response.send_message(
@@ -226,9 +226,9 @@ class RenameOtherModal(Modal, title="他のユーザーの名前を変更しま�
             guild = interaction.guild
             member = await guild.fetch_member(self.target_user.id)
             await member.edit(nick=self.new_name.value)
-            
+
             await interaction.response.send_message(
-                f"✅ {self.target_user.display_name} さんのニックネームを「{self.new_name.value}」に変更しました！", 
+                f"✅ {self.target_user.display_name} さんのニックネームを「{self.new_name.value}」に変更しました！",
                 ephemeral=True
             )
         except discord.Forbidden as e:
@@ -262,14 +262,14 @@ class ColorSelectModal(Modal, title="名前の色を変更します！"):
             color_code = self.color.value.strip()
             if not color_code.startswith('#'):
                 color_code = '#' + color_code
-            
+
             # 16進数の色コードとして検証
             color_int = int(color_code[1:], 16)
-            
+
             # カスタムロールの作成または取得
             guild = interaction.guild
             role_name = f"{self.user.display_name} のネームカラー"
-            
+
             # 既存のロールを探す
             color_role = discord.utils.get(guild.roles, name=role_name)
             if not color_role:
@@ -280,7 +280,7 @@ class ColorSelectModal(Modal, title="名前の色を変更します！"):
                     reason=f"Custom color for {self.user.display_name}",
                     permissions=discord.Permissions.none()  # 権限を最小限に
                 )
-                
+
                 # ロールの位置を上に設定
                 # サーバーのロール一覧を取得
                 roles = guild.roles
@@ -288,18 +288,18 @@ class ColorSelectModal(Modal, title="名前の色を変更します！"):
                 top_role = roles[0]  # @everyoneは除外される
                 # 新しいロールの位置を設定
                 await color_role.edit(position=top_role.position)
-            
+
             # ユーザーの既存のカラーロールを削除
             for role in self.user.roles:
                 if role.name.endswith("のネームカラー"):
                     await self.user.remove_roles(role)
-            
+
             # 新しい色のロールを付与
             await self.user.add_roles(color_role)
-            
+
             # ロールの色を更新
             await color_role.edit(color=discord.Color(color_int))
-            
+
             await interaction.response.send_message(
                 f"✅ 名前の色を「{color_code}」に変更しました！",
                 ephemeral=True

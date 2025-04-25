@@ -12,67 +12,31 @@ supabase: Client = create_client(url, key)
 # ========== 基本関数 ==========
 
 async def add_user_if_not_exists(discord_id: str, discord_name: str):
-    print(f"[add_user_if_not_exists] 開始: discord_id={discord_id}, discord_name={discord_name}")
-    
-    try:
-        # ユーザーがすでに存在するか確認
-        user_id = await get_user_by(discord_id)
-        print(f"[add_user_if_not_exists] 既存ユーザー確認: {user_id}")
+    # ユーザーがすでに存在するか確認
+    user_id = await get_user_by(discord_id)
 
-        if user_id:
-            # 既存ユーザーの場合、名前を更新
-            print(f"[add_user_if_not_exists] 既存ユーザーの名前を更新: {discord_name}")
-            await supabase.table("users").update({
-                "discord_name": discord_name
-            }).eq("id", user_id).execute()
-            return user_id
-
-        # 新規ユーザーの場合
-        print("[add_user_if_not_exists] 新規ユーザーを作成します")
+    # エラーが発生した場合のチェック（APIResponseオブジェクトの確認）
+    if not user_id:
         try:
-            # まずユーザーを作成
-            res = await supabase.table("users").insert({
+            res = supabase.table("users").insert({
                 "discord_id": discord_id,
                 "discord_name": discord_name,
             }).execute()
             user_id = res.data[0]["id"]
-            print(f"[add_user_if_not_exists] 新規ユーザー作成: {user_id}")
 
-            # ポイントテーブルに初期レコードを作成
-            await supabase.table("points").insert({
-                "user_id": user_id,
-                "point": 0  # ポイント初期化
+            supabase.table("points").insert({
+                    "user_id": user_id,
+                    "point": 0  # ポイント初期化
             }).execute()
-            print(f"[add_user_if_not_exists] ポイント初期化: {user_id}")
+        except Exception as e:
+            raise Exception(f"ユーザーの追加に失敗しました。{e}")
+        # ユーザーが存在しない場合、新規登録
 
-            return user_id
-        except Exception as insert_error:
-            print(f"[add_user_if_not_exists] 新規ユーザー作成エラー: {str(insert_error)}")
-            # 重複キーエラーの場合、既存ユーザーを再取得
-            if hasattr(insert_error, 'code') and insert_error.code == '23505':
-                print("[add_user_if_not_exists] 重複キーエラー: 既存ユーザーを再取得します")
-                # 既存ユーザーを取得
-                user_id = await get_user_by(discord_id)
-                if user_id:
-                    # 名前を更新
-                    await supabase.table("users").update({
-                        "discord_name": discord_name
-                    }).eq("id", user_id).execute()
-                    return user_id
-                else:
-                    # 既存ユーザーが見つからない場合（レースコンディション）
-                    print("[add_user_if_not_exists] 既存ユーザーが見つかりません。再試行します。")
-                    # 少し待機して再試行
-                    await asyncio.sleep(1)
-                    user_id = await get_user_by(discord_id)
-                    if user_id:
-                        return user_id
-            raise insert_error
 
-    except Exception as e:
-        print(f"[add_user_if_not_exists] エラー発生: {str(e)}")
-        raise Exception(f"ユーザーの追加に失敗しました。{e}")
+        return user_id  # 新規ユーザーの情報を返す
 
+
+    return user_id  # ユーザー情報を返す
 
 async def add_points_to_user(discord_id: str, points: int):
     # ここにSupabaseやデータベースの処理を記述
@@ -89,71 +53,42 @@ async def add_points_to_user(discord_id: str, points: int):
 
 
 async def get_user_by(discord_id: str):
-    print(f"[get_user_by] 開始: discord_id={discord_id}")
-    try:
-        res = await supabase.table("users").select("id").eq("discord_id", discord_id).execute()
-        print(f"[get_user_by] 結果: {res.data}")
+    res = supabase.table("users").select("id").eq("discord_id", discord_id).execute()  # await外す
 
-        # ユーザーIDが見つかればそのIDを返す
-        if res.data and len(res.data) > 0:
-            user_id = res.data[0]["id"]
-            print(f"[get_user_by] ユーザーID取得: {user_id}")
-            return user_id
+    # ユーザーIDが見つかればそのIDを返す
+    if res.data:
+        return res.data[0]["id"]
 
-        print("[get_user_by] ユーザーが見つかりません")
-        return None
-    except Exception as e:
-        print(f"[get_user_by] エラー発生: {str(e)}")
-        return None
+    return None
 
-async def get_point_by(user_id: str):
-    print(f"[get_point_by] 開始: user_id={user_id}")
-    try:
-        res = await supabase.table("points").select("point").eq("user_id", str(user_id)).execute()
-        print(f"[get_point_by] 結果: {res.data}")
+async def get_point_by(user_id: any):
+    res = supabase.table("points").select("point").eq("user_id", user_id).execute()
 
-        if res.data and len(res.data) > 0:
-            point = res.data[0]["point"]
-            print(f"[get_point_by] ポイント取得: {point}")
-            return point
+    if res.data:
+        return res.data[0]["point"]
 
-        print("[get_point_by] ポイントが見つかりません")
-        return None  # ポイントが見つからない場合はNoneを返す
-    except Exception as e:
-        print(f"[get_point_by] エラー発生: {str(e)}")
-        return None  # エラー時もNoneを返す
+    return None
 
-async def update_points(user_id: str, points: int, reason: str = "リアクションポイント"):
-    print(f"[update_points] 開始: user_id={user_id}, points={points}, reason={reason}")
-    
-    try:
-        # 現在のポイントを取得
-        current_points = await get_point_by(user_id)
-        print(f"[update_points] 現在のポイント: {current_points}")
+async def update_points(discord_id: str, points: int, reason: str = "リアクションポイント"):
+    user_id = await get_user_by(discord_id)
 
-        # 新しいポイントを計算
-        new_points = current_points + points
-        print(f"[update_points] 新しいポイント: {new_points}")
+    # ユーザーが見つからない場合は何もしない
+    if not user_id:
+        return
 
-        # ポイントを更新
-        result = await supabase.table("points").upsert({
-            "user_id": str(user_id),
-            "point": new_points
-        }).execute()
-        print(f"[update_points] ポイント更新結果: {result.data}")
+    user_point = await get_point_by(user_id)
 
-        # ポイントログを挿入
-        log_result = await supabase.table("points_log").insert({
-            "user_id": str(user_id),
-            "point": points,
-            "reason": reason
-        }).execute()
-        print(f"[update_points] ログ挿入結果: {log_result.data}")
+    # ポイント更新
+    supabase.table("points").update({
+        "point": user_point+points
+    }).eq("user_id", user_id).execute()
 
-        return True
-    except Exception as e:
-        print(f"[update_points] エラー発生: {str(e)}")
-        return False
+    # ポイントログを挿入
+    supabase.table("points_log").insert({
+        "user_id": user_id,
+        "point": points,
+        "reason": reason
+    }).execute()  # await外す
 
 async def get_total_points(discord_id: str):
     print(f"[get_total_points] ユーザーID取得開始: {discord_id}")
@@ -184,32 +119,24 @@ async def transfer_points(from_discord_id: str, to_discord_id: str, points: int)
     from_point = await get_point_by(from_user_id)
     to_point = await get_point_by(to_user_id)
 
-    # ポイントがNoneの場合は0として扱う
-    if from_point is None:
-        from_point = 0
-    if to_point is None:
-        to_point = 0
-
-    if from_point < points:
+    if from_user_id < points:
         return False, "ポイントが不足しています。"
 
     # ポイントを徴収
-    await supabase.table("points").upsert({
-        "user_id": from_user_id,
-        "point": from_point - points
-    }).execute()
+    supabase.table("points").update({
+        "point": from_point-points,
+    }).eq("user_id", from_user_id)
 
     # ポイントを付与
-    await supabase.table("points").upsert({
-        "user_id": to_user_id,
-        "point": to_point + points
-    }).execute()
+    supabase.table("points").update({
+        "point": to_point+points,
+    }).eq("user_id", to_user_id)
 
     # ポイントを譲渡記録を残す
-    await supabase.table("points_log").insert([
+    supabase.table("points_log").insert([
         {"user_id": from_user_id, "points": -points, "reason": "ポイント送信"},
         {"user_id": to_user_id, "points": points, "reason": "ポイント受け取り"}
-    ]).execute()
+    ]).execute()  # await外す
 
     return True, f"{points}ポイントを送信しました！"
 
@@ -264,41 +191,6 @@ async def fix_user_points(discord_id: str):
     else:
         return None  # ユーザーが見つからない場合
 
-async def save_user_color(user_id: str, color_code: str):
-    """ユーザーの色情報を保存する"""
-    try:
-        # 色情報を保存
-        supabase.table("user_colors").upsert({
-            "user_id": user_id,
-            "color_code": color_code
-        }).execute()
-        return True
-    except Exception as e:
-        print(f"色情報の保存に失敗: {e}")
-        return False
-
-async def get_user_color(user_id: str):
-    """ユーザーの色情報を取得する"""
-    try:
-        res = supabase.table("user_colors").select("color_code").eq("user_id", user_id).execute()
-        if res.data:
-            return res.data[0]["color_code"]
-        return None
-    except Exception as e:
-        print(f"色情報の取得に失敗: {e}")
-        return None
-
-async def update_user_color(user_id: str, color_code: str):
-    """ユーザーの色情報を更新する"""
-    try:
-        # 色情報を更新
-        supabase.table("user_colors").update({
-            "color_code": color_code
-        }).eq("user_id", user_id).execute()
-        return True
-    except Exception as e:
-        print(f"色情報の更新に失敗: {e}")
-        return False
 
 # # ========== テスト用 ==========
 

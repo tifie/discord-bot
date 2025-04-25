@@ -44,22 +44,14 @@ async def mypoints(interaction: discord.Interaction):
     print(f"mypoints コマンドが呼ばれました。discord_id: {interaction.user.id}, discord_name: {interaction.user.display_name}")
 
     try:
-        user_id = await add_user_if_not_exists(str(interaction.user.id), interaction.user.display_name)
-        print(f"[mypoints] ユーザーID: {user_id}")
-
-        # ポイントを取得
-        points = await get_point_by(user_id)
-        print(f"[mypoints] 取得したポイント: {points}")
-
-        if points is None:
-            print("[mypoints] ポイントが見つかりません")
-            await interaction.followup.send("⚠️ ポイント情報が見つかりません。", ephemeral=True)
-            return
-
-        await interaction.followup.send(f"現在のnp： **{points}NP** ", ephemeral=True)
+        await add_user_if_not_exists(str(interaction.user.id), interaction.user.display_name)
     except Exception as e:
-        print(f"[mypoints] エラー発生: {str(e)}")
-        await interaction.followup.send(f"⚠️ エラーが発生しました: {str(e)}", ephemeral=True)
+        print(f"add_user_if_not_exists 呼び出し時にエラー: {e}")
+
+    # 修正: get_total_points を supabase とユーザーIDで呼び出し
+    points = await get_total_points(str(interaction.user.id))  # 修正箇所
+    await interaction.followup.send(f"現在のnp： **{points}NP** ", ephemeral=True)
+
 
 @bot.tree.command(name="givepoints", description="誰かのnpを渡します")
 @app_commands.describe(user="NPを渡す相手", amount="渡すNP数")
@@ -130,19 +122,6 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
 async def shop_profile(interaction: discord.Interaction):
     from shop.shop_ui import send_shop_category
     await send_shop_category(interaction, "プロフ変更系")
-
-@shop_profile.error
-async def shop_profile_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
-    if isinstance(error, app_commands.MissingPermissions):
-        await interaction.response.send_message(
-            "⚠️ このコマンドは管理者のみが使用できます。",
-            ephemeral=True
-        )
-    else:
-        await interaction.response.send_message(
-            f"⚠️ エラーが発生しました: {str(error)}",
-            ephemeral=True
-        )
 
 class RenameModal(Modal, title="名前を変更します！"):
     def __init__(self, user: discord.Member):
