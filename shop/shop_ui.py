@@ -197,7 +197,6 @@ class UserSelectView(discord.ui.View):
         return True
 
     @discord.ui.select(
-        type=discord.ComponentType.user_select,
         placeholder="名前を変更するユーザーを選択してください",
         min_values=1,
         max_values=1,
