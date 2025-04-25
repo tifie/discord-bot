@@ -80,16 +80,23 @@ async def update_points(discord_id: str, points: int, reason: str = "リアク�
     user_point = await get_point_by(user_id)
 
     # ポイント更新
-    supabase.table("points").update({
-        "point": user_point+points
-    }).eq("user_id", user_id).execute()
+    try:
+        # ポイントを更新
+        supabase.table("points").update({
+            "point": user_point + points
+        }).eq("user_id", user_id).execute()
 
-    # ポイントログを挿入
-    supabase.table("points_log").insert({
-        "user_id": user_id,
-        "point": points,
-        "reason": reason
-    }).execute()  # await外す
+        # ポイントログを挿入
+        supabase.table("points_log").insert({
+            "user_id": user_id,
+            "point": points,
+            "reason": reason
+        }).execute()
+
+        return True
+    except Exception as e:
+        print(f"ポイント更新エラー: {e}")
+        return False
 
 async def get_total_points(discord_id: str):
     print(f"[get_total_points] ユーザーID取得開始: {discord_id}")

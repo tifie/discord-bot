@@ -41,7 +41,14 @@ class ShopButton(Button):
                 return
 
             # ポイントの減算
-            await update_points(user_id, -self.cost, f"{self.item_name}の購入")
+            success = await update_points(user_id, -self.cost, f"{self.item_name}の購入")
+            if not success:
+                await interaction.response.send_message(
+                    "⚠️ ポイントの更新に失敗しました。",
+                    ephemeral=True
+                )
+                return
+
             user_point = await get_point_by(user_id)
 
             if self.item_name == "名前変更権":
