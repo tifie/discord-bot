@@ -172,31 +172,27 @@ class RenameOtherModal(Modal, title="他のユーザーの名前を変更しま�
 
     async def on_submit(self, interaction: discord.Interaction):
         try:
-            try:
-                # Botの権限で名前を変更
-                guild = interaction.guild
-                member = await guild.fetch_member(self.target_user.id)
-                await member.edit(nick=self.new_name.value)
-                
-                await interaction.response.send_message(
-                    f"✅ {self.target_user.display_name} さんのニックネームを「{self.new_name.value}」に変更しました！", 
-                    ephemeral=True
-                )
-            except discord.Forbidden as e:
-                error_message = str(e)
-                await interaction.response.send_message(
-                    f"⚠️ 権限エラーが発生しました：\n{error_message}\n\n"
-                    "以下の点を確認してください：\n"
-                    "1. Botに「メンバーのニックネームを管理」の権限があるか\n"
-                    "2. Botのロールが変更対象のユーザーより上位にあるか\n"
-                    "3. サーバー設定でBotの権限が正しく設定されているか",
-                    ephemeral=True
-                )
+            # Botの権限で名前を変更
+            guild = interaction.guild
+            member = await guild.fetch_member(self.target_user.id)
+            await member.edit(nick=self.new_name.value)
+            
+            await interaction.response.send_message(
+                f"✅ {self.target_user.display_name} さんのニックネームを「{self.new_name.value}」に変更しました！", 
+                ephemeral=True
+            )
+        except discord.Forbidden as e:
+            error_message = str(e)
+            await interaction.response.send_message(
+                f"⚠️ 権限エラーが発生しました：\n{error_message}\n\n"
+                "以下の点を確認してください：\n"
+                "1. Botに「メンバーのニックネームを管理」の権限があるか\n"
+                "2. Botのロールが変更対象のユーザーより上位にあるか\n"
+                "3. サーバー設定でBotの権限が正しく設定されているか",
+                ephemeral=True
+            )
         except Exception as e:
-            try:
-                await interaction.response.send_message(f"⚠️ エラーが発生しました: {str(e)}", ephemeral=True)
-            except discord.errors.NotFound:
-                await interaction.message.reply(f"⚠️ エラーが発生しました: {str(e)}", ephemeral=True)
+            await interaction.response.send_message(f"⚠️ エラーが発生しました: {str(e)}", ephemeral=True)
 
 # ユーザー選択ビュー
 class UserSelectView(discord.ui.View):
@@ -212,10 +208,17 @@ class UserSelectView(discord.ui.View):
             )
 
         async def callback(self, interaction: discord.Interaction):
-            selected_user = self.values[0]
-            modal = RenameOtherModal(selected_user)
-            await interaction.response.send_modal(modal)
-            self.view.stop()
+            try:
+                selected_user = self.values[0]
+                modal = RenameOtherModal(selected_user)
+                await interaction.response.send_modal(modal)
+            except Exception as e:
+                await interaction.response.send_message(
+                    f"⚠️ エラーが発生しました: {str(e)}",
+                    ephemeral=True
+                )
+            finally:
+                self.view.stop()
 
     def __init__(self):
         super().__init__(timeout=60)
