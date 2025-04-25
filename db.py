@@ -108,10 +108,10 @@ async def get_point_by(user_id: str):
             return point
 
         print("[get_point_by] ポイントが見つかりません")
-        return 0  # ポイントが見つからない場合は0を返す（テーブルの初期値に合わせる）
+        return None  # ポイントが見つからない場合はNoneを返す
     except Exception as e:
         print(f"[get_point_by] エラー発生: {str(e)}")
-        return 0  # エラー時も0を返す
+        return None  # エラー時もNoneを返す
 
 async def update_points(user_id: str, points: int, reason: str = "リアクションポイント"):
     print(f"[update_points] 開始: user_id={user_id}, points={points}, reason={reason}")
