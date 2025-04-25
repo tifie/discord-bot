@@ -56,6 +56,10 @@ class ShopButton(Button):
                     view=view,
                     ephemeral=True
                 )
+            elif self.item_name == "ネームカラー変更権":
+                # カラー選択モーダルを表示
+                modal = ColorSelectModal(interaction.user)
+                await interaction.response.send_modal(modal)
             else:
                 # 購入後のUIの更新
                 await interaction.response.send_message(
@@ -99,7 +103,7 @@ async def send_shop_category(interaction: discord.Interaction, category_name: st
         await interaction.response.send_message(
             embed=embed,
             view=CategoryShopView(category_name, supabase),
-            ephemeral=True
+            ephemeral=False  # 全員に見えるように変更
         )
     except discord.errors.NotFound:
         # インタラクションが無効な場合は、新しいメッセージを送信
@@ -193,6 +197,60 @@ class RenameOtherModal(Modal, title="他のユーザーの名前を変更しま�
             )
         except Exception as e:
             await interaction.response.send_message(f"⚠️ エラーが発生しました: {str(e)}", ephemeral=True)
+
+# カラー選択モーダル
+class ColorSelectModal(Modal, title="名前の色を変更します！"):
+    def __init__(self, user: discord.Member):
+        super().__init__()
+        self.user = user
+        self.color = TextInput(
+            label="色コード",
+            placeholder="例: #FF0000 (赤), #00FF00 (緑), #0000FF (青)",
+            max_length=7
+        )
+        self.add_item(self.color)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            # 色コードの検証
+            color_code = self.color.value.strip()
+            if not color_code.startswith('#'):
+                color_code = '#' + color_code
+            
+            # 16進数の色コードとして検証
+            int(color_code[1:], 16)
+            
+            # ユーザーのニックネームを取得
+            current_nick = self.user.display_name
+            
+            # 色付きのニックネームを作成
+            # Discordのマークダウンを使用して色を付ける
+            colored_nick = f"```ansi\n\u001b[38;5;{int(color_code[1:], 16)}m{current_nick}\u001b[0m\n```"
+            
+            # ニックネームを更新
+            await self.user.edit(nick=colored_nick)
+            
+            await interaction.response.send_message(
+                f"✅ 名前の色を「{color_code}」に変更しました！",
+                ephemeral=True
+            )
+        except ValueError:
+            await interaction.response.send_message(
+                "⚠️ 無効な色コードです。正しい16進数の色コードを入力してください。\n例: #FF0000 (赤), #00FF00 (緑), #0000FF (青)",
+                ephemeral=True
+            )
+        except discord.Forbidden:
+            await interaction.response.send_message(
+                "⚠️ Botにニックネームを変更する権限がありません。\n"
+                "以下の権限が必要です：\n"
+                "・「メンバーのニックネームを管理」",
+                ephemeral=True
+            )
+        except Exception as e:
+            await interaction.response.send_message(
+                f"⚠️ エラーが発生しました: {str(e)}",
+                ephemeral=True
+            )
 
 # ユーザー選択ビュー
 class UserSelectView(discord.ui.View):
