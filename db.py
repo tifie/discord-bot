@@ -30,6 +30,7 @@ async def add_user_if_not_exists(discord_id: str, discord_name: str):
         # 新規ユーザーの場合
         print("[add_user_if_not_exists] 新規ユーザーを作成します")
         try:
+            # まずユーザーを作成
             res = await supabase.table("users").insert({
                 "discord_id": discord_id,
                 "discord_name": discord_name,
@@ -50,6 +51,7 @@ async def add_user_if_not_exists(discord_id: str, discord_name: str):
             # 重複キーエラーの場合、既存ユーザーを再取得
             if hasattr(insert_error, 'code') and insert_error.code == '23505':
                 print("[add_user_if_not_exists] 重複キーエラー: 既存ユーザーを再取得します")
+                # 既存ユーザーを取得
                 user_id = await get_user_by(discord_id)
                 if user_id:
                     # 名前を更新
@@ -57,6 +59,14 @@ async def add_user_if_not_exists(discord_id: str, discord_name: str):
                         "discord_name": discord_name
                     }).eq("id", user_id).execute()
                     return user_id
+                else:
+                    # 既存ユーザーが見つからない場合（レースコンディション）
+                    print("[add_user_if_not_exists] 既存ユーザーが見つかりません。再試行します。")
+                    # 少し待機して再試行
+                    await asyncio.sleep(1)
+                    user_id = await get_user_by(discord_id)
+                    if user_id:
+                        return user_id
             raise insert_error
 
     except Exception as e:
